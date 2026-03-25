@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.*
@@ -215,7 +216,7 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = colors.divider, modifier = Modifier.padding(start = 68.dp))
                     SettingsItem(
-                        icon = Icons.Default.Help,
+                        icon = Icons.AutoMirrored.Filled.Help,
                         iconBg = colors.iconBgOrange,
                         iconTint = Color(0xFFE65100),
                         title = strings.sHelp,
@@ -237,7 +238,7 @@ fun SettingsScreen(
                         iconBg = colors.iconBgGreen,
                         iconTint = colors.success,
                         title = strings.sVersion,
-                        subtitle = "2.5.0",
+                        subtitle = "1.0.0",
                         trailing = { SettingsArrow() },
                     )
                 }

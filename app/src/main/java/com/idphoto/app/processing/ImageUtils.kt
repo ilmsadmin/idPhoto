@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
 
@@ -207,9 +208,18 @@ object ImageUtils {
             canvas.drawColor(bgColor)
         }
 
-        // Mapping ratio: frame-pixel → output-pixel
-        val ratioX = outW.toFloat() / frameWidth.toFloat()
-        val ratioY = outH.toFloat() / frameHeight.toFloat()
+        // ── Mapping ratio: frame-pixel → output-pixel ──
+        // QUAN TRỌNG: Dùng uniform ratio (cùng 1 giá trị cho cả X và Y)
+        // để tránh biến dạng (méo ảnh). Nếu frame trên screen có aspect ratio
+        // hơi khác output (do dp→px rounding), ta dùng min ratio để ảnh vừa
+        // khít trong output, rồi center phần dư.
+        val rawRatioX = outW.toFloat() / frameWidth.toFloat()
+        val rawRatioY = outH.toFloat() / frameHeight.toFloat()
+        val uniformRatio = minOf(rawRatioX, rawRatioY)
+
+        // Offset để center ảnh nếu output aspect khác frame aspect
+        val centerOffsetX = (outW - frameWidth * uniformRatio) / 2f
+        val centerOffsetY = (outH - frameHeight * uniformRatio) / 2f
 
         // Step 1: ContentScale.Fit — fit foreground into frame, centered
         val fitScale = minOf(
@@ -232,18 +242,19 @@ object ImageUtils {
         val finalFrameX = scaledFitX + offsetX
         val finalFrameY = scaledFitY + offsetY
 
-        // Map to output-pixel space
-        val outDrawX = finalFrameX * ratioX
-        val outDrawY = finalFrameY * ratioY
-        val totalScaleX = fitScale * scale * ratioX
-        val totalScaleY = fitScale * scale * ratioY
+        // Map to output-pixel space — dùng uniform ratio + center offset
+        val outDrawX = finalFrameX * uniformRatio + centerOffsetX
+        val outDrawY = finalFrameY * uniformRatio + centerOffsetY
+        // Uniform scale cho cả X và Y — KHÔNG dùng riêng ratioX/ratioY
+        val totalScale = fitScale * scale * uniformRatio
 
         // ── HIGH-QUALITY RENDERING ──
         // Thay vì dùng Matrix scale trên Canvas (bilinear kém chất lượng),
         // pre-scale bitmap bằng multi-step halving (Lanczos-like quality)
         // rồi chỉ dùng Canvas translate (không scale).
-        val destW = (foreground.width * totalScaleX).toInt().coerceAtLeast(1)
-        val destH = (foreground.height * totalScaleY).toInt().coerceAtLeast(1)
+        // Dùng uniform totalScale cho cả width và height → giữ đúng tỷ lệ ảnh.
+        val destW = (foreground.width * totalScale).toInt().coerceAtLeast(1)
+        val destH = (foreground.height * totalScale).toInt().coerceAtLeast(1)
 
         val scaledFg = highQualityScale(foreground, destW, destH)
 
@@ -305,9 +316,13 @@ object ImageUtils {
         }
         if (bgPaint.shader != null) canvas.drawRect(0f, 0f, outW.toFloat(), outH.toFloat(), bgPaint)
 
-        // Draw foreground with transform
-        val ratioX = outW.toFloat() / frameWidth.toFloat()
-        val ratioY = outH.toFloat() / frameHeight.toFloat()
+        // Draw foreground with transform — uniform ratio to prevent distortion
+        val rawRatioX = outW.toFloat() / frameWidth.toFloat()
+        val rawRatioY = outH.toFloat() / frameHeight.toFloat()
+        val uniformRatio = minOf(rawRatioX, rawRatioY)
+        val centerOffsetX = (outW - frameWidth * uniformRatio) / 2f
+        val centerOffsetY = (outH - frameHeight * uniformRatio) / 2f
+
         val fitScale = minOf(frameWidth.toFloat() / foreground.width.toFloat(), frameHeight.toFloat() / foreground.height.toFloat())
         val fittedW = foreground.width * fitScale
         val fittedH = foreground.height * fitScale
@@ -319,14 +334,13 @@ object ImageUtils {
         val scaledFitY = frameCy + (fitY - frameCy) * scale
         val finalFrameX = scaledFitX + offsetX
         val finalFrameY = scaledFitY + offsetY
-        val outDrawX = finalFrameX * ratioX
-        val outDrawY = finalFrameY * ratioY
-        val outScaleX = fitScale * scale * ratioX
-        val outScaleY = fitScale * scale * ratioY
+        val outDrawX = finalFrameX * uniformRatio + centerOffsetX
+        val outDrawY = finalFrameY * uniformRatio + centerOffsetY
+        val totalScale = fitScale * scale * uniformRatio
 
         // ── HIGH-QUALITY RENDERING — pre-scale thay vì Matrix scale ──
-        val destW = (foreground.width * outScaleX).toInt().coerceAtLeast(1)
-        val destH = (foreground.height * outScaleY).toInt().coerceAtLeast(1)
+        val destW = (foreground.width * totalScale).toInt().coerceAtLeast(1)
+        val destH = (foreground.height * totalScale).toInt().coerceAtLeast(1)
         val scaledFg = highQualityScale(foreground, destW, destH)
 
         val fgPaint = Paint().apply { isAntiAlias = true; isFilterBitmap = true; isDither = false }
@@ -459,16 +473,20 @@ object ImageUtils {
     }
 
     /**
-     * High-quality bitmap scaling — sử dụng kỹ thuật multi-step halving.
+     * High-quality bitmap scaling — single-step direct downscale.
      *
-     * Khi downscale (ví dụ 3000px → 600px), bilinear filtering bình thường
-     * sẽ bỏ qua nhiều pixel → mất chi tiết tóc, lông mày.
+     * Thay vì multi-step halving (gây tích lũy blur qua nhiều bước),
+     * dùng Android createScaledBitmap (bilinear) trực tiếp 1 bước
+     * rồi khôi phục sharpness bằng Unsharp Mask mạnh hơn.
      *
-     * Multi-step halving: scale xuống 50% nhiều lần liên tiếp cho đến khi
-     * gần target size, rồi scale cuối cùng. Mỗi bước chỉ giảm 50% nên
-     * bilinear filter giữ được gần như toàn bộ chi tiết — tương đương Lanczos.
+     * Lý do: multi-step halving giữ edge tóc tốt nhưng blur khuôn mặt
+     * sau 3-4 bước (ảnh 3000px → 354px = 4 bước halving). Single-step
+     * + USM cho kết quả sắc nét hơn trên cả khuôn mặt lẫn tóc.
      *
-     * Khi upscale: dùng trực tiếp createScaledBitmap (bilinear đủ tốt cho upscale).
+     * Pipeline:
+     * 1. Nếu scale ratio > 4x → 1 bước halving trung gian (giữ detail tóc)
+     * 2. Direct scale về target size
+     * 3. 2-pass Unsharp Mask: radius lớn (khôi phục structure) + radius nhỏ (detail)
      */
     fun highQualityScale(src: Bitmap, targetW: Int, targetH: Int): Bitmap {
         if (src.width == targetW && src.height == targetH) return src
@@ -478,34 +496,198 @@ object ImageUtils {
             return Bitmap.createScaledBitmap(src, targetW, targetH, true)
         }
 
-        // Downscale — multi-step halving để giữ chi tiết
+        val scaleRatio = src.width.toFloat() / targetW.toFloat()
+
+        // ── Downscale strategy ──
+        // Nếu ratio > 4x: 1 bước trung gian (scale về 2x target) rồi scale tiếp
+        // Nếu ratio ≤ 4x: direct scale 1 bước
+        // Tối đa 1 bước trung gian → ít blur tích lũy hơn multi-step halving
         var current = src
-        var currentW = src.width
-        var currentH = src.height
+        var didIntermediate = false
 
-        // Giảm 50% mỗi bước cho đến khi kích thước < 2x target
-        while (currentW / 2 >= targetW && currentH / 2 >= targetH) {
-            val halfW = currentW / 2
-            val halfH = currentH / 2
-            val half = Bitmap.createScaledBitmap(current, halfW, halfH, true)
-            if (current != src) current.recycle()
-            current = half
-            currentW = halfW
-            currentH = halfH
+        if (scaleRatio > 4f) {
+            // Scale về kích thước trung gian = 2x target
+            val midW = targetW * 2
+            val midH = targetH * 2
+            current = Bitmap.createScaledBitmap(src, midW, midH, true)
+            didIntermediate = true
         }
 
-        // Bước cuối: scale từ current → target (tỉ lệ < 2x nên bilinear đủ tốt)
-        if (currentW != targetW || currentH != targetH) {
-            val finalBitmap = Bitmap.createScaledBitmap(current, targetW, targetH, true)
-            if (current != src) current.recycle()
-            return finalBitmap
+        // Scale về target size
+        var result = if (current.width == targetW && current.height == targetH) {
+            current
+        } else {
+            val scaled = Bitmap.createScaledBitmap(current, targetW, targetH, true)
+            if (didIntermediate) current.recycle()
+            scaled
         }
 
-        return current
+        // ── 2-pass Unsharp Mask — khôi phục sharpness ──
+        // Pass 1: radius=2 — khôi phục structure lớn (đường nét khuôn mặt, mắt)
+        // Pass 2: radius=1 — khôi phục fine detail (lông mày, tóc, texture da)
+        // Amount adaptive theo scale ratio: downscale càng nhiều → sharpen càng mạnh
+
+        val baseAmount = when {
+            scaleRatio > 6f -> 0.7f    // 3000→354px: cần sharpen mạnh
+            scaleRatio > 4f -> 0.55f   // 3000→600px: sharpen vừa
+            scaleRatio > 2f -> 0.4f    // Scale trung bình
+            else -> 0.25f              // Scale nhẹ
+        }
+
+        // Pass 1: Structure recovery (radius lớn, threshold cao hơn)
+        val pass1 = unsharpMask(result, radius = 2, amount = baseAmount * 0.7f, threshold = 3)
+        if (result != src) result.recycle()
+
+        // Pass 2: Detail recovery (radius nhỏ, threshold thấp hơn để bắt fine detail)
+        val pass2 = unsharpMask(pass1, radius = 1, amount = baseAmount, threshold = 2)
+        pass1.recycle()
+
+        return pass2
     }
 
     /**
-     * Lưu ảnh vào Gallery với tuỳ chọn format.
+     * Unsharp Mask (USM) — kỹ thuật sharpen chuẩn công nghiệp.
+     *
+     * Nguyên lý: sharp = original + amount * (original - blurred)
+     * Tức là tăng cường sự khác biệt giữa ảnh gốc và ảnh blur,
+     * làm nổi bật các edge/detail mà không tạo noise mới.
+     *
+     * @param radius    Bán kính blur (1 = fine detail, 2 = structure)
+     * @param amount    Cường độ sharpen (0.3-0.7)
+     * @param threshold Ngưỡng — chỉ sharpen pixel có contrast > threshold,
+     *                  tránh amplify noise ở vùng flat (nền đồng màu)
+     */
+    private fun unsharpMask(
+        src: Bitmap,
+        radius: Int = 1,
+        amount: Float = 0.5f,
+        threshold: Int = 2,
+    ): Bitmap {
+        val width = src.width
+        val height = src.height
+        val pixels = IntArray(width * height)
+        src.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        // Tạo bản blur bằng box blur (nhanh, đủ tốt cho radius nhỏ)
+        val blurred = boxBlur(pixels, width, height, radius)
+
+        // Áp dụng USM: sharp = original + amount * (original - blurred)
+        val result = IntArray(width * height)
+        for (i in pixels.indices) {
+            val origPixel = pixels[i]
+            val blurPixel = blurred[i]
+
+            val origA = (origPixel ushr 24) and 0xFF
+            val origR = (origPixel shr 16) and 0xFF
+            val origG = (origPixel shr 8) and 0xFF
+            val origB = origPixel and 0xFF
+
+            val blurR = (blurPixel shr 16) and 0xFF
+            val blurG = (blurPixel shr 8) and 0xFF
+            val blurB = blurPixel and 0xFF
+
+            val diffR = origR - blurR
+            val diffG = origG - blurG
+            val diffB = origB - blurB
+
+            // Luminance-based diff check — chỉ bỏ qua vùng thực sự flat
+            val lumaDiff = (0.299f * kotlin.math.abs(diffR) +
+                           0.587f * kotlin.math.abs(diffG) +
+                           0.114f * kotlin.math.abs(diffB)).toInt()
+
+            if (lumaDiff < threshold) {
+                // Vùng flat (nền đồng màu) — giữ nguyên
+                result[i] = origPixel
+            } else {
+                // Có detail — sharpen
+                val newR = (origR + (diffR * amount).toInt()).coerceIn(0, 255)
+                val newG = (origG + (diffG * amount).toInt()).coerceIn(0, 255)
+                val newB = (origB + (diffB * amount).toInt()).coerceIn(0, 255)
+                result[i] = (origA shl 24) or (newR shl 16) or (newG shl 8) or newB
+            }
+        }
+
+        val output = Bitmap.createBitmap(width, height, src.config ?: Bitmap.Config.ARGB_8888)
+        output.setPixels(result, 0, width, 0, 0, width, height)
+        return output
+    }
+
+    /**
+     * Box blur nhanh — separable 2-pass (horizontal + vertical).
+     * O(n) per pixel regardless of radius.
+     */
+    private fun boxBlur(pixels: IntArray, width: Int, height: Int, radius: Int): IntArray {
+        val temp = IntArray(width * height)
+        val result = IntArray(width * height)
+        val size = radius * 2 + 1
+
+        // Horizontal pass
+        for (y in 0 until height) {
+            var sumR = 0; var sumG = 0; var sumB = 0
+
+            for (kx in -radius..radius) {
+                val px = kx.coerceIn(0, width - 1)
+                val pixel = pixels[y * width + px]
+                sumR += (pixel shr 16) and 0xFF
+                sumG += (pixel shr 8) and 0xFF
+                sumB += pixel and 0xFF
+            }
+            temp[y * width] = (pixels[y * width] and 0xFF000000.toInt()) or
+                    ((sumR / size) shl 16) or ((sumG / size) shl 8) or (sumB / size)
+
+            for (x in 1 until width) {
+                val addX = (x + radius).coerceAtMost(width - 1)
+                val removeX = (x - radius - 1).coerceAtLeast(0)
+                val addPixel = pixels[y * width + addX]
+                val removePixel = pixels[y * width + removeX]
+
+                sumR += ((addPixel shr 16) and 0xFF) - ((removePixel shr 16) and 0xFF)
+                sumG += ((addPixel shr 8) and 0xFF) - ((removePixel shr 8) and 0xFF)
+                sumB += (addPixel and 0xFF) - (removePixel and 0xFF)
+
+                temp[y * width + x] = (pixels[y * width + x] and 0xFF000000.toInt()) or
+                        ((sumR / size).coerceIn(0, 255) shl 16) or
+                        ((sumG / size).coerceIn(0, 255) shl 8) or
+                        (sumB / size).coerceIn(0, 255)
+            }
+        }
+
+        // Vertical pass
+        for (x in 0 until width) {
+            var sumR = 0; var sumG = 0; var sumB = 0
+
+            for (ky in -radius..radius) {
+                val py = ky.coerceIn(0, height - 1)
+                val pixel = temp[py * width + x]
+                sumR += (pixel shr 16) and 0xFF
+                sumG += (pixel shr 8) and 0xFF
+                sumB += pixel and 0xFF
+            }
+            result[x] = (temp[x] and 0xFF000000.toInt()) or
+                    ((sumR / size) shl 16) or ((sumG / size) shl 8) or (sumB / size)
+
+            for (y in 1 until height) {
+                val addY = (y + radius).coerceAtMost(height - 1)
+                val removeY = (y - radius - 1).coerceAtLeast(0)
+                val addPixel = temp[addY * width + x]
+                val removePixel = temp[removeY * width + x]
+
+                sumR += ((addPixel shr 16) and 0xFF) - ((removePixel shr 16) and 0xFF)
+                sumG += ((addPixel shr 8) and 0xFF) - ((removePixel shr 8) and 0xFF)
+                sumB += (addPixel and 0xFF) - (removePixel and 0xFF)
+
+                result[y * width + x] = (temp[y * width + x] and 0xFF000000.toInt()) or
+                        ((sumR / size).coerceIn(0, 255) shl 16) or
+                        ((sumG / size).coerceIn(0, 255) shl 8) or
+                        (sumB / size).coerceIn(0, 255)
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Lưu ảnh vào Gallery với tuỳ chọn format và DPI metadata.
      */
     fun saveToGallery(
         context: Context,
@@ -515,11 +697,46 @@ object ImageUtils {
         quality: Int = 100,
         mimeType: String = "image/png",
         fileExtension: String = "png",
+        dpi: Int = 300,
     ): Uri? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveWithMediaStore(context, bitmap, fileName, format, quality, mimeType, fileExtension)
+            saveWithMediaStore(context, bitmap, fileName, format, quality, mimeType, fileExtension, dpi)
         } else {
-            saveToExternalStorage(context, bitmap, fileName, format, quality, fileExtension)
+            saveToExternalStorage(context, bitmap, fileName, format, quality, fileExtension, dpi)
+        }
+    }
+
+    /**
+     * Ghi DPI metadata vào EXIF (hỗ trợ JPEG).
+     * JPEG sử dụng EXIF XResolution/YResolution.
+     */
+    private fun writeDpiExif(context: Context, uri: Uri, dpi: Int) {
+        try {
+            context.contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
+                val exif = ExifInterface(pfd.fileDescriptor)
+                // EXIF stores DPI as rational: "300/1"
+                val dpiRational = "$dpi/1"
+                exif.setAttribute(ExifInterface.TAG_X_RESOLUTION, dpiRational)
+                exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, dpiRational)
+                // ResolutionUnit = 2 means DPI (inches)
+                exif.setAttribute(ExifInterface.TAG_RESOLUTION_UNIT, "2")
+                exif.saveAttributes()
+            }
+        } catch (_: Exception) {
+            // Silently fail — DPI metadata is optional
+        }
+    }
+
+    private fun writeDpiExif(file: File, dpi: Int) {
+        try {
+            val exif = ExifInterface(file.absolutePath)
+            val dpiRational = "$dpi/1"
+            exif.setAttribute(ExifInterface.TAG_X_RESOLUTION, dpiRational)
+            exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, dpiRational)
+            exif.setAttribute(ExifInterface.TAG_RESOLUTION_UNIT, "2")
+            exif.saveAttributes()
+        } catch (_: Exception) {
+            // Silently fail
         }
     }
 
@@ -531,6 +748,7 @@ object ImageUtils {
         quality: Int,
         mimeType: String,
         fileExtension: String,
+        dpi: Int,
     ): Uri? {
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, "$fileName.$fileExtension")
@@ -545,6 +763,10 @@ object ImageUtils {
         uri?.let {
             resolver.openOutputStream(it)?.use { outputStream ->
                 bitmap.compress(format, quality, outputStream)
+            }
+            // Ghi DPI metadata vào EXIF (JPEG)
+            if (format == Bitmap.CompressFormat.JPEG) {
+                writeDpiExif(context, it, dpi)
             }
             contentValues.clear()
             contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
@@ -562,6 +784,7 @@ object ImageUtils {
         format: Bitmap.CompressFormat,
         quality: Int,
         fileExtension: String,
+        dpi: Int,
     ): Uri? {
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
@@ -572,6 +795,11 @@ object ImageUtils {
         val file = File(dir, "$fileName.$fileExtension")
         FileOutputStream(file).use { outputStream ->
             bitmap.compress(format, quality, outputStream)
+        }
+
+        // Ghi DPI metadata vào EXIF (JPEG)
+        if (format == Bitmap.CompressFormat.JPEG) {
+            writeDpiExif(file, dpi)
         }
 
         return Uri.fromFile(file)

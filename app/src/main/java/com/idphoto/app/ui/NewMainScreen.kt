@@ -26,7 +26,9 @@ import com.idphoto.app.ui.theme.ThemeMode
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewMainScreen(viewModel: AppViewModel = viewModel()) {
+fun NewMainScreen(
+    viewModel: AppViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
 
@@ -86,20 +88,9 @@ fun NewMainScreen(viewModel: AppViewModel = viewModel()) {
             Box(modifier = Modifier.fillMaxSize()) {
                 NavHost(
                     navController = navController,
-                    startDestination = NavRoutes.SPLASH,
+                    startDestination = NavRoutes.HOME,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // ── Splash ──
-                    composable(NavRoutes.SPLASH) {
-                        SplashScreen(
-                            onNavigateToHome = {
-                                navController.navigate(NavRoutes.HOME) {
-                                    popUpTo(NavRoutes.SPLASH) { inclusive = true }
-                                }
-                            },
-                        )
-                    }
-
                     // ── Home ──
                     composable(NavRoutes.HOME) {
                         HomeScreen(
@@ -241,6 +232,7 @@ fun NewMainScreen(viewModel: AppViewModel = viewModel()) {
                             brightnessLevel = uiState.brightnessLevel,
                             pipelineRunId = uiState.pipelineRunId,
                             selectedSize = uiState.selectedSize,
+                            photoDpi = uiState.photoDpi,
                             onBack = {
                                 viewModel.closeToolPanel()
                                 viewModel.reset()

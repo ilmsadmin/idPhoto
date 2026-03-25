@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.*
@@ -243,7 +244,7 @@ fun HomeScreen(
                         )
                     }
                     Icon(
-                        Icons.Default.ArrowForwardIos,
+                        Icons.AutoMirrored.Filled.ArrowForwardIos,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = colors.textTertiary,

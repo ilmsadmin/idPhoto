@@ -1,11 +1,10 @@
 package com.idphoto.app.ui.screens
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,9 +13,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idphoto.app.R
 import com.idphoto.app.ui.LocalStrings
 import kotlinx.coroutines.delay
 
@@ -24,13 +25,19 @@ import kotlinx.coroutines.delay
  * Splash Screen — matching mockup.
  * Blue gradient background, camera icon in white rounded square,
  * "ID Photo Pro" title, subtitle, loading spinner.
- * Auto-navigate to Home after 2 seconds.
+ * Auto-navigate to Home after 1 second.
  */
 @Composable
 fun SplashScreen(
+    onContentReady: () -> Unit = {},
     onNavigateToHome: () -> Unit,
 ) {
     val strings = LocalStrings.current
+
+    // Signal that Compose content is drawn — dismiss system splash
+    LaunchedEffect(Unit) {
+        onContentReady()
+    }
 
     // Spinner animation
     val infiniteTransition = rememberInfiniteTransition(label = "splash")
@@ -44,9 +51,9 @@ fun SplashScreen(
         label = "spinner"
     )
 
-    // Auto navigate after 2s
+    // Auto navigate after 1s
     LaunchedEffect(Unit) {
-        delay(2000)
+        delay(1000)
         onNavigateToHome()
     }
 
@@ -63,21 +70,14 @@ fun SplashScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Camera icon in white rounded square
-            Box(
+            // App logo
+            Image(
+                painter = painterResource(R.drawable.ic_launcher),
+                contentDescription = "ID Photo Pro",
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.CameraAlt,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = Color(0xFF1565C0),
-                )
-            }
+                    .clip(RoundedCornerShape(28.dp)),
+            )
 
             Spacer(modifier = Modifier.height(28.dp))
 

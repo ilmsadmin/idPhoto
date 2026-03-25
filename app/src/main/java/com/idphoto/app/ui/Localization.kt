@@ -1,7 +1,6 @@
 package com.idphoto.app.ui
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.text.intl.Locale as ComposeLocale
 
 /**
  * Hệ thống đa ngôn ngữ — VI, EN, JA, ZH.

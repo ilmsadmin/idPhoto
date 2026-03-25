@@ -4,7 +4,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
+import android.util.Size as AndroidSize
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -19,6 +23,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,9 +44,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,7 +56,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.idphoto.app.processing.QualityChecker
 import com.idphoto.app.ui.LocalStrings
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -74,6 +83,44 @@ private data class LiveQualityState(
     val goodBackground: Boolean = false,
     val hint: String = "",
 )
+
+/**
+ * Load thumbnail of the latest photo from the device gallery.
+ * Returns null if no photos found or permission not granted.
+ */
+private suspend fun loadLatestGalleryThumbnail(context: Context): Bitmap? = withContext(Dispatchers.IO) {
+    try {
+        val uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+        )
+        val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
+
+        context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+                val imageId = cursor.getLong(idColumn)
+                val imageUri = android.content.ContentUris.withAppendedId(uri, imageId)
+
+                // Load thumbnail
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    context.contentResolver.loadThumbnail(imageUri, AndroidSize(128, 128), null)
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Thumbnails.getThumbnail(
+                        context.contentResolver,
+                        imageId,
+                        MediaStore.Images.Thumbnails.MINI_KIND,
+                        null,
+                    )
+                }
+            } else null
+        }
+    } catch (e: Exception) {
+        Log.w("CameraScreen", "Failed to load gallery thumbnail", e)
+        null
+    }
+}
 
 @Composable
 fun CameraScreen(
@@ -104,6 +151,12 @@ fun CameraScreen(
 
     // Capture flash animation
     var showFlash by remember { mutableStateOf(false) }
+
+    // Latest gallery photo thumbnail
+    var galleryThumbnail by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(Unit) {
+        galleryThumbnail = loadLatestGalleryThumbnail(context)
+    }
 
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
@@ -333,20 +386,38 @@ fun CameraScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                // Gallery button
+                // Gallery button — show latest photo thumbnail
                 Surface(
                     onClick = onGalleryClick,
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White.copy(alpha = 0.12f),
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .then(
+                            if (galleryThumbnail != null)
+                                Modifier.border(1.5.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            else Modifier
+                        ),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Image,
-                            contentDescription = "Gallery",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp),
-                        )
+                        val thumb = galleryThumbnail
+                        if (thumb != null) {
+                            Image(
+                                bitmap = thumb.asImageBitmap(),
+                                contentDescription = "Gallery",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp)),
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Image,
+                                contentDescription = "Gallery",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
                     }
                 }
 

@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -567,6 +568,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val printCopies = saveOptions?.printCopies ?: _uiState.value.printQuantity
                 val includePrintLayout = saveOptions?.includePrintLayout ?: true
                 val outputFormat = saveOptions?.outputFormat ?: _uiState.value.outputFormat
+                val photoDpi = saveOptions?.photoDpi ?: _uiState.value.photoDpi
 
                 // Dùng processedBitmap (foreground gốc) làm source để render high-res
                 var foreground = _uiState.value.processedBitmap ?: return@launch
@@ -608,8 +610,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     // ── Bây giờ compositeFull là ảnh OPAQUE (không có alpha) giống preview ──
                     // Render với transform (zoom/pan) lên output — dùng ảnh opaque nên
                     // Canvas bilinear filter KHÔNG gây mờ viền.
-                    val targetW = targetSize.widthPx
-                    val targetH = targetSize.heightPx
+
+                    // Tính target pixel theo DPI user chọn (thay vì cố định 300 DPI)
+                    val targetW = targetSize.widthPxAtDpi(photoDpi)
+                    val targetH = targetSize.heightPxAtDpi(photoDpi)
 
                     // ── Render trực tiếp ở target resolution ──
                     // Tránh render hi-res rồi downscale (gây mờ tóc/lông mày).
@@ -653,13 +657,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     )
 
                     // Determine format
-                    val compressFormat = if (outputFormat == "JPEG")
-                        Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.PNG
-                    val fileExt = if (outputFormat == "JPEG") "jpg" else "png"
-                    val mimeType = if (outputFormat == "JPEG") "image/jpeg" else "image/png"
+                    val compressFormat = when (outputFormat) {
+                        "JPEG" -> Bitmap.CompressFormat.JPEG
+                        "WEBP" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                            Bitmap.CompressFormat.WEBP_LOSSLESS else @Suppress("DEPRECATION") Bitmap.CompressFormat.WEBP
+                        else -> Bitmap.CompressFormat.PNG
+                    }
+                    val fileExt = when (outputFormat) {
+                        "JPEG" -> "jpg"
+                        "WEBP" -> "webp"
+                        else -> "png"
+                    }
+                    val mimeType = when (outputFormat) {
+                        "JPEG" -> "image/jpeg"
+                        "WEBP" -> "image/webp"
+                        else -> "image/png"
+                    }
                     val quality = if (outputFormat == "JPEG") 100 else 100
 
-                    // Save to gallery
+                    // Save to gallery with DPI metadata
                     withContext(Dispatchers.IO) {
                         ImageUtils.saveToGallery(
                             getApplication(),
@@ -669,6 +685,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             quality,
                             mimeType,
                             fileExt,
+                            photoDpi,
                         )
                         if (includePrintLayout && printLayout != null) {
                             ImageUtils.saveToGallery(
@@ -679,6 +696,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 quality,
                                 mimeType,
                                 fileExt,
+                                photoDpi,
                             )
                         }
                     }

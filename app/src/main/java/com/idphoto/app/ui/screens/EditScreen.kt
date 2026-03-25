@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,6 +50,7 @@ data class SaveOptions(
     val printCopies: Int,
     val includePrintLayout: Boolean,
     val outputFormat: String, // "PNG" or "JPEG"
+    val photoDpi: Int = 300,  // DPI for output quality
 )
 
 /**
@@ -67,6 +69,7 @@ fun EditScreen(
     brightnessLevel: Float = 0f,
     pipelineRunId: Int = 0,
     selectedSize: PhotoSize = PhotoSizeManager.standardSizes[1],
+    photoDpi: Int = 300,
     onBack: () -> Unit,
     onSave: (scale: Float, offsetX: Float, offsetY: Float, frameWidth: Int, frameHeight: Int, saveOptions: SaveOptions) -> Unit,
     onBgColorSelected: (Color) -> Unit,
@@ -100,6 +103,7 @@ fun EditScreen(
     if (showSaveDialog) {
         SaveOptionsDialog(
             currentSize = selectedSize,
+            currentDpi = photoDpi,
             onDismiss = { showSaveDialog = false },
             onConfirm = { saveOptions ->
                 showSaveDialog = false
@@ -479,7 +483,7 @@ fun EditScreen(
             ) {
                 EditToolButton(Icons.Default.Palette, strings.tColor, activeEditTool == EditTool.CHANGE_BG) { onToolClick(EditTool.CHANGE_BG) }
                 EditToolButton(Icons.Default.WbSunny, strings.tBright, activeEditTool == EditTool.BRIGHTNESS) { onToolClick(EditTool.BRIGHTNESS) }
-                EditToolButton(Icons.Default.RotateRight, strings.tRotate, false) { onToolClick(EditTool.ROTATE) }
+                EditToolButton(Icons.AutoMirrored.Filled.RotateRight, strings.tRotate, false) { onToolClick(EditTool.ROTATE) }
                 EditToolButton(Icons.Default.Print, strings.tPrint, false) { onNavigateToPrint() }
             }
         }
@@ -593,6 +597,7 @@ enum class EditTool {
 @Composable
 private fun SaveOptionsDialog(
     currentSize: PhotoSize,
+    currentDpi: Int = 300,
     onDismiss: () -> Unit,
     onConfirm: (SaveOptions) -> Unit,
 ) {
@@ -602,6 +607,7 @@ private fun SaveOptionsDialog(
     var printCopies by remember { mutableIntStateOf(9) }
     var includePrintLayout by remember { mutableStateOf(true) }
     var outputFormat by remember { mutableStateOf("PNG") }
+    var selectedDpi by remember { mutableIntStateOf(currentDpi) }
 
     val photosPerSheet = PhotoSizeManager.getPhotosPerSheet(currentSize)
 
@@ -658,10 +664,67 @@ private fun SaveOptionsDialog(
                                 color = colors.textPrimary,
                             )
                             Text(
-                                currentSize.pixelSize,
+                                currentSize.pixelSizeAtDpi(selectedDpi) + " @ ${selectedDpi} DPI",
                                 fontSize = 11.sp,
                                 color = colors.textTertiary,
                             )
+                        }
+                    }
+                }
+
+                // ── DPI Quality Selector ──
+                Text(
+                    strings.sQuality,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = colors.textPrimary,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    data class DpiOption(val dpi: Int, val label: String, val desc: String)
+                    val dpiOptions = listOf(
+                        DpiOption(150, "150", "Draft"),
+                        DpiOption(200, "200", "OK"),
+                        DpiOption(300, "300", "HD ★"),
+                        DpiOption(450, "450", "Pro"),
+                        DpiOption(600, "600", "Ultra"),
+                    )
+                    dpiOptions.forEach { option ->
+                        val isSelected = selectedDpi == option.dpi
+                        Surface(
+                            onClick = { selectedDpi = option.dpi },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) colors.primary.copy(alpha = 0.15f) else colors.background,
+                            border = if (isSelected)
+                                ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                    brush = Brush.linearGradient(listOf(colors.primary, colors.primary))
+                                ) else null,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    "${option.dpi}",
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp,
+                                    color = if (isSelected) colors.primary else colors.textSecondary,
+                                )
+                                Text(
+                                    "DPI",
+                                    fontSize = 9.sp,
+                                    color = colors.textTertiary,
+                                )
+                                Text(
+                                    option.desc,
+                                    fontSize = 9.sp,
+                                    color = if (isSelected) colors.primary else colors.textTertiary,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
                 }
@@ -821,6 +884,7 @@ private fun SaveOptionsDialog(
                             printCopies = printCopies,
                             includePrintLayout = includePrintLayout,
                             outputFormat = outputFormat,
+                            photoDpi = selectedDpi,
                         )
                     )
                 },

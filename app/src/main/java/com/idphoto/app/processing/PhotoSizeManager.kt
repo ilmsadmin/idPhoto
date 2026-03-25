@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 
 /**
@@ -22,6 +21,11 @@ data class PhotoSize(
     val aspectRatio: Float get() = widthMm / heightMm
     val displaySize: String get() = "${widthMm.toInt()}x${heightMm.toInt()}mm"
     val pixelSize: String get() = "${widthPx}×${heightPx} px"
+
+    /** Tính kích thước pixel theo DPI tuỳ chọn (mặc định 300 DPI). */
+    fun widthPxAtDpi(dpi: Int): Int = (widthMm / 25.4f * dpi).toInt()
+    fun heightPxAtDpi(dpi: Int): Int = (heightMm / 25.4f * dpi).toInt()
+    fun pixelSizeAtDpi(dpi: Int): String = "${widthPxAtDpi(dpi)}×${heightPxAtDpi(dpi)} px"
 }
 
 /**
@@ -265,7 +269,6 @@ object PhotoSizeManager {
 
         // Tính số trang cần thiết
         val totalSheets = ((count + perSheet - 1) / perSheet).coerceAtLeast(1)
-        val totalRows = rows * totalSheets
         val totalHeightPx = if (totalSheets > 1) {
             paperHeightPx * totalSheets
         } else {

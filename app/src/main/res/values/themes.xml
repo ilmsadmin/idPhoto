@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.IDPhoto" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Splash Screen API -->
+        <!-- Splash Screen API — match the Compose splash gradient -->
         <item name="android:windowSplashScreenBackground">#FF1565C0</item>
+        <!-- Minimize blank frame by quick exit animation -->
+        <item name="android:windowBackground">@color/splash_bg</item>
     </style>
+
+    <color name="splash_bg">#FF1565C0</color>
 </resources>
