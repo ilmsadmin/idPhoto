@@ -445,20 +445,36 @@ object ImageUtils {
     }
 
     /**
-     * Lưu ảnh vào Gallery
+     * Lưu ảnh vào Gallery với tuỳ chọn format.
      */
-    fun saveToGallery(context: Context, bitmap: Bitmap, fileName: String = "IDPhoto_${System.currentTimeMillis()}"): Uri? {
+    fun saveToGallery(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String = "IDPhoto_${System.currentTimeMillis()}",
+        format: Bitmap.CompressFormat = Bitmap.CompressFormat.PNG,
+        quality: Int = 100,
+        mimeType: String = "image/png",
+        fileExtension: String = "png",
+    ): Uri? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveWithMediaStore(context, bitmap, fileName)
+            saveWithMediaStore(context, bitmap, fileName, format, quality, mimeType, fileExtension)
         } else {
-            saveToExternalStorage(context, bitmap, fileName)
+            saveToExternalStorage(context, bitmap, fileName, format, quality, fileExtension)
         }
     }
 
-    private fun saveWithMediaStore(context: Context, bitmap: Bitmap, fileName: String): Uri? {
+    private fun saveWithMediaStore(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String,
+        format: Bitmap.CompressFormat,
+        quality: Int,
+        mimeType: String,
+        fileExtension: String,
+    ): Uri? {
         val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "$fileName.png")
-            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.DISPLAY_NAME, "$fileName.$fileExtension")
+            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
             put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/IDPhoto")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
@@ -468,7 +484,7 @@ object ImageUtils {
 
         uri?.let {
             resolver.openOutputStream(it)?.use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                bitmap.compress(format, quality, outputStream)
             }
             contentValues.clear()
             contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
@@ -479,16 +495,23 @@ object ImageUtils {
     }
 
     @Suppress("DEPRECATION")
-    private fun saveToExternalStorage(context: Context, bitmap: Bitmap, fileName: String): Uri? {
+    private fun saveToExternalStorage(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String,
+        format: Bitmap.CompressFormat,
+        quality: Int,
+        fileExtension: String,
+    ): Uri? {
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
             "IDPhoto"
         )
         if (!dir.exists()) dir.mkdirs()
 
-        val file = File(dir, "$fileName.png")
+        val file = File(dir, "$fileName.$fileExtension")
         FileOutputStream(file).use { outputStream ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            bitmap.compress(format, quality, outputStream)
         }
 
         return Uri.fromFile(file)

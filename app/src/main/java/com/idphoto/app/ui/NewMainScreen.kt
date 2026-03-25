@@ -240,13 +240,14 @@ fun NewMainScreen(viewModel: AppViewModel = viewModel()) {
                             activeEditTool = uiState.activeEditTool,
                             brightnessLevel = uiState.brightnessLevel,
                             pipelineRunId = uiState.pipelineRunId,
+                            selectedSize = uiState.selectedSize,
                             onBack = {
                                 viewModel.closeToolPanel()
                                 viewModel.reset()
                                 navController.popBackStack(NavRoutes.HOME, false)
                             },
-                            onSave = { scale, offsetX, offsetY, frameW, frameH ->
-                                viewModel.savePhotoWithTransform(scale, offsetX, offsetY, frameW, frameH)
+                            onSave = { scale, offsetX, offsetY, frameW, frameH, saveOptions ->
+                                viewModel.savePhotoWithTransform(scale, offsetX, offsetY, frameW, frameH, saveOptions)
                             },
                             onBgColorSelected = { color ->
                                 viewModel.onBgColorSelected(color)

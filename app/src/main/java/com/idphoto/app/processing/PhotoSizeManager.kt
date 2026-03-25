@@ -234,4 +234,96 @@ object PhotoSizeManager {
         val rows = ((availH + gap) / (size.heightMm + gap)).toInt().coerceAtLeast(1)
         return cols * rows
     }
+
+    /**
+     * Tạo print layout với số lượng ảnh tuỳ chọn.
+     * Nếu số ảnh vượt quá 1 trang, chỉ tạo số trang cần thiết (trả về trang đầu tiên).
+     * Ảnh sẽ được xếp từ trái sang phải, trên xuống dưới, đủ số lượng thì dừng.
+     */
+    fun createPrintLayoutWithCount(
+        photo: Bitmap,
+        size: PhotoSize,
+        count: Int,
+        paperWidthMm: Float = 152f,
+        paperHeightMm: Float = 102f,
+    ): Bitmap {
+        val dpi = 300
+        val paperWidthPx = (paperWidthMm / 25.4f * dpi).toInt()
+        val paperHeightPx = (paperHeightMm / 25.4f * dpi).toInt()
+
+        val gapMm = 2f
+        val gapPx = (gapMm / 25.4f * dpi).toInt()
+        val marginMm = 3f
+        val marginPx = (marginMm / 25.4f * dpi).toInt()
+
+        val availableW = paperWidthPx - 2 * marginPx
+        val availableH = paperHeightPx - 2 * marginPx
+
+        val cols = ((availableW + gapPx) / (size.widthPx + gapPx)).coerceAtLeast(1)
+        val rows = ((availableH + gapPx) / (size.heightPx + gapPx)).coerceAtLeast(1)
+        val perSheet = cols * rows
+
+        // Tính số trang cần thiết
+        val totalSheets = ((count + perSheet - 1) / perSheet).coerceAtLeast(1)
+        val totalRows = rows * totalSheets
+        val totalHeightPx = if (totalSheets > 1) {
+            paperHeightPx * totalSheets
+        } else {
+            paperHeightPx
+        }
+
+        val paperBitmap = Bitmap.createBitmap(paperWidthPx, totalHeightPx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(paperBitmap)
+        canvas.drawColor(Color.WHITE)
+
+        val borderPaint = Paint().apply {
+            color = Color.LTGRAY
+            style = Paint.Style.STROKE
+            strokeWidth = 1f
+        }
+
+        val scaledPhoto = if (photo.width == size.widthPx && photo.height == size.heightPx) {
+            photo
+        } else {
+            Bitmap.createScaledBitmap(photo, size.widthPx, size.heightPx, true)
+        }
+
+        var placed = 0
+        for (sheet in 0 until totalSheets) {
+            val sheetOffsetY = sheet * paperHeightPx
+            val totalW = cols * size.widthPx + (cols - 1) * gapPx
+            val totalH = rows * size.heightPx + (rows - 1) * gapPx
+            val startX = (paperWidthPx - totalW) / 2
+            val startY = sheetOffsetY + (paperHeightPx - totalH) / 2
+
+            for (row in 0 until rows) {
+                for (col in 0 until cols) {
+                    if (placed >= count) break
+                    val x = startX + col * (size.widthPx + gapPx)
+                    val y = startY + row * (size.heightPx + gapPx)
+
+                    canvas.drawBitmap(scaledPhoto, x.toFloat(), y.toFloat(), null)
+                    canvas.drawRect(
+                        RectF(x.toFloat(), y.toFloat(),
+                            (x + size.widthPx).toFloat(), (y + size.heightPx).toFloat()),
+                        borderPaint
+                    )
+                    placed++
+                }
+                if (placed >= count) break
+            }
+
+            // Info text per sheet
+            val textPaint = Paint().apply {
+                color = Color.GRAY
+                textSize = 24f
+                isAntiAlias = true
+            }
+            val photosOnSheet = minOf(perSheet, count - sheet * perSheet)
+            val infoText = "${size.name} | $photosOnSheet ảnh | 300 DPI"
+            canvas.drawText(infoText, marginPx.toFloat(), (sheetOffsetY + paperHeightPx - 8).toFloat(), textPaint)
+        }
+
+        return paperBitmap
+    }
 }

@@ -539,15 +539,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // ─── Save ──────────────────────────────────────
 
     /**
-     * Save photo with user's zoom/pan adjustments applied.
+     * Save photo with user's zoom/pan adjustments applied and user-chosen save options.
      *
-     * Dùng processedBitmap (ảnh tách nền gốc, chưa qua beauty) làm foreground,
-     * render lên background với đúng vị trí zoom/pan user đã chỉnh trên preview.
+     * Dùng compositeBitmap (ảnh đã composite background + brightness + outfit giống hệt preview)
+     * làm nguồn chính, render lên output với đúng vị trí zoom/pan.
      *
-     * renderFramedBitmap sẽ output ở resolution cao (dựa trên kích thước foreground gốc),
-     * KHÔNG dùng resolution của preview frame (200dp×260dp).
+     * Cải tiến chất lượng:
+     * - Dùng cùng pipeline render như preview (compositeBitmap) để đảm bảo WYSIWYG
+     * - Hỗ trợ tuỳ chọn cỡ ảnh, số lượng ảnh in, định dạng output
+     * - Không apply thêm beauty hay bất kỳ filter nào ngoài những gì user đã thấy
      *
-     * Flow: processedBitmap → brightness → renderFramedBitmap (high-res) → outfit → crop → save
+     * Flow: compositeBitmap → renderFramedBitmap (high-res, same transform) → crop → save
+     *       Nếu includePrintLayout → tạo print layout với số lượng tuỳ chọn
      */
     fun savePhotoWithTransform(
         scale: Float,
@@ -555,10 +558,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         offsetY: Float,
         frameWidth: Int,
         frameHeight: Int,
+        saveOptions: com.idphoto.app.ui.screens.SaveOptions? = null,
     ) {
         viewModelScope.launch {
             try {
-                val size = _uiState.value.selectedSize
+                // Dùng save options hoặc default
+                val targetSize = _uiState.value.selectedSize
+                val printCopies = saveOptions?.printCopies ?: _uiState.value.printQuantity
+                val includePrintLayout = saveOptions?.includePrintLayout ?: true
+                val outputFormat = saveOptions?.outputFormat ?: _uiState.value.outputFormat
+
+                // Dùng processedBitmap (foreground gốc) làm source để render high-res
                 var foreground = _uiState.value.processedBitmap ?: return@launch
 
                 val bgIndex = _uiState.value.selectedBgIndex
@@ -567,14 +577,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val brightness = _uiState.value.brightnessLevel
 
                 withContext(Dispatchers.Default) {
-                    // Chỉ apply brightness (KHÔNG apply beauty — đã bỏ)
+                    // Apply brightness — giống hệt rebuildComposite()
                     if (brightness != 0f) {
                         val factor = 1f + brightness * 0.5f
                         foreground = adjustBitmapBrightness(foreground, factor)
                     }
 
                     // Render foreground lên background với user transform
-                    // Output ở resolution cao (tự tính từ foreground size, KHÔNG phải frame size)
+                    // Tính output size dựa trên target photo size (DPI chuẩn)
+                    val outputW = targetSize.widthPx
+                    val outputH = targetSize.heightPx
+
                     val framed = if (bgOption != null && bgOption.gradientColors != null) {
                         ImageUtils.renderFramedBitmapWithOption(
                             foreground = foreground,
@@ -584,6 +597,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             offsetY = offsetY,
                             frameWidth = frameWidth,
                             frameHeight = frameHeight,
+                            outputWidth = outputW,
+                            outputHeight = outputH,
                         )
                     } else {
                         val androidBgColor = android.graphics.Color.rgb(
@@ -599,10 +614,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             offsetY = offsetY,
                             frameWidth = frameWidth,
                             frameHeight = frameHeight,
+                            outputWidth = outputW,
+                            outputHeight = outputH,
                         )
                     }
 
-                    // Apply outfit if selected
+                    // Apply outfit if selected — giống hệt rebuildComposite()
                     var finalBitmap = framed
                     val outfitIndex = _uiState.value.selectedOutfitIndex
                     if (outfitIndex > 0 && outfitIndex < OutfitOverlay.outfitOptions.size) {
@@ -610,30 +627,53 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         finalBitmap = OutfitOverlay.applyOutfit(framed, null, outfit)
                     }
 
-                    // Crop to selected photo size
-                    val cropped = PhotoSizeManager.cropToSize(finalBitmap, size)
+                    // Đảm bảo output đúng kích thước target
+                    val cropped = if (finalBitmap.width != targetSize.widthPx || finalBitmap.height != targetSize.heightPx) {
+                        PhotoSizeManager.cropToSize(finalBitmap, targetSize)
+                    } else {
+                        finalBitmap
+                    }
 
-                    // Create print layout
-                    val printLayout = PhotoSizeManager.createPrintLayout(cropped, size)
+                    // Create print layout nếu user chọn
+                    val printLayout = if (includePrintLayout) {
+                        PhotoSizeManager.createPrintLayoutWithCount(cropped, targetSize, printCopies)
+                    } else null
 
-                    // Update state
+                    // Update state for preview
                     _uiState.value = _uiState.value.copy(
                         croppedBitmap = cropped,
                         printLayoutBitmap = printLayout,
                     )
+
+                    // Determine format
+                    val compressFormat = if (outputFormat == "JPEG")
+                        Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.PNG
+                    val fileExt = if (outputFormat == "JPEG") "jpg" else "png"
+                    val mimeType = if (outputFormat == "JPEG") "image/jpeg" else "image/png"
+                    val quality = if (outputFormat == "JPEG") 95 else 100
 
                     // Save to gallery
                     withContext(Dispatchers.IO) {
                         ImageUtils.saveToGallery(
                             getApplication(),
                             cropped,
-                            "IDPhoto_single_${System.currentTimeMillis()}"
+                            "IDPhoto_single_${System.currentTimeMillis()}",
+                            compressFormat,
+                            quality,
+                            mimeType,
+                            fileExt,
                         )
-                        ImageUtils.saveToGallery(
-                            getApplication(),
-                            printLayout,
-                            "IDPhoto_print_${System.currentTimeMillis()}"
-                        )
+                        if (includePrintLayout && printLayout != null) {
+                            ImageUtils.saveToGallery(
+                                getApplication(),
+                                printLayout,
+                                "IDPhoto_print_${System.currentTimeMillis()}",
+                                compressFormat,
+                                quality,
+                                mimeType,
+                                fileExt,
+                            )
+                        }
                     }
                 }
 
