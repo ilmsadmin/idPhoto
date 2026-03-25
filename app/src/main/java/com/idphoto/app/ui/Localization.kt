@@ -1,6 +1,7 @@
 package com.idphoto.app.ui
 
 import androidx.compose.runtime.*
+import java.util.Locale
 
 /**
  * Hệ thống đa ngôn ngữ — VI, EN, JA, ZH.
@@ -11,7 +12,18 @@ enum class AppLanguage(val code: String, val label: String, val nativeName: Stri
     VI("vi", "VI", "Tiếng Việt"),
     EN("en", "EN", "English"),
     JA("ja", "JA", "日本語"),
-    ZH("zh", "ZH", "中文"),
+    ZH("zh", "ZH", "中文");
+
+    companion object {
+        /**
+         * Detect app language from the device's system locale.
+         * Falls back to English if the system language is not supported.
+         */
+        fun fromSystemLocale(): AppLanguage {
+            val systemLang = Locale.getDefault().language // "vi", "en", "ja", "zh", etc.
+            return entries.find { it.code == systemLang } ?: EN
+        }
+    }
 }
 
 data class Strings(
@@ -43,6 +55,9 @@ data class Strings(
     val tipLight: String,
     val tipFace: String,
     val tipBg: String,
+    val selectPhotoHint: String,
+    val capturedPhotos: String,
+    val deletePhoto: String,
 
     // Edit
     val editTitle: String,
@@ -154,6 +169,9 @@ val ViStrings = Strings(
     tipLight = "Ánh sáng tốt",
     tipFace = "Giữ thẳng mặt",
     tipBg = "Phông nền OK",
+    selectPhotoHint = "Chọn ảnh để chỉnh sửa",
+    capturedPhotos = "Ảnh đã chụp",
+    deletePhoto = "Xóa ảnh",
     editTitle = "Chỉnh sửa",
     save = "Lưu",
     tCrop = "Cắt",
@@ -247,6 +265,9 @@ val EnStrings = Strings(
     tipLight = "Good lighting",
     tipFace = "Keep face straight",
     tipBg = "Background OK",
+    selectPhotoHint = "Tap a photo to edit",
+    capturedPhotos = "Captured photos",
+    deletePhoto = "Delete photo",
     editTitle = "Edit Photo",
     save = "Save",
     tCrop = "Crop",
@@ -340,6 +361,9 @@ val JaStrings = Strings(
     tipLight = "照明OK",
     tipFace = "正面を向く",
     tipBg = "背景OK",
+    selectPhotoHint = "写真をタップして編集",
+    capturedPhotos = "撮影した写真",
+    deletePhoto = "写真を削除",
     editTitle = "写真を編集",
     save = "保存",
     tCrop = "切取",
@@ -433,6 +457,9 @@ val ZhStrings = Strings(
     tipLight = "光线良好",
     tipFace = "保持正面",
     tipBg = "背景OK",
+    selectPhotoHint = "点击照片进行编辑",
+    capturedPhotos = "已拍照片",
+    deletePhoto = "删除照片",
     editTitle = "编辑照片",
     save = "保存",
     tCrop = "裁剪",
@@ -506,8 +533,8 @@ val ZhStrings = Strings(
     retry = "重试",
 )
 
-val LocalStrings = compositionLocalOf { ViStrings }
-val LocalLanguage = compositionLocalOf { AppLanguage.VI }
+val LocalStrings = compositionLocalOf { getStrings(AppLanguage.fromSystemLocale()) }
+val LocalLanguage = compositionLocalOf { AppLanguage.fromSystemLocale() }
 
 fun getStrings(language: AppLanguage): Strings = when (language) {
     AppLanguage.VI -> ViStrings

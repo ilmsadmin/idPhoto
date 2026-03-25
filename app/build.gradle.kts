@@ -8,24 +8,45 @@ android {
     namespace = "com.idphoto.app"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("idPhoto.jks")
+            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
+            keyAlias = project.property("RELEASE_KEY_ALIAS") as String
+            keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
+        }
+    }
+
     defaultConfig {
-        applicationId = "com.idphoto.app"
+        applicationId = "com.idphoto_pro.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ── Chỉ giữ arm64-v8a ──
+        // Loại bỏ armeabi-v7a, x86, x86_64 (emulator/thiết bị cũ)
+        // 99%+ thiết bị Android hiện tại dùng arm64-v8a
+        // Áp dụng cho cả APK lẫn AAB
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -45,6 +66,26 @@ android {
     // Không nén file ONNX trong APK — cho phép memory mapping hiệu quả
     androidResources {
         noCompress += "onnx"
+    }
+
+    packaging {
+        // Loại bỏ các file không cần thiết
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module",
+                "META-INF/versions/**",
+                "DebugProbesKt.bin",
+                "kotlin-tooling-metadata.json",
+            )
+        }
     }
 }
 

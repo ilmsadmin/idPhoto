@@ -70,3 +70,8 @@ lint/tmp/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Keystore & secrets — KHÔNG push lên repo
+*.jks
+*.keystore
+gradle.properties

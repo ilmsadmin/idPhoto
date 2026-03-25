@@ -43,7 +43,7 @@ class SettingsDataStore(private val context: Context) {
     // ── Data class for all settings ──
 
     data class Settings(
-        val language: AppLanguage = AppLanguage.VI,
+        val language: AppLanguage = AppLanguage.fromSystemLocale(),
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
         val photoDpi: Int = 300,
         val outputFormat: String = "JPEG",
@@ -66,7 +66,7 @@ class SettingsDataStore(private val context: Context) {
             Settings(
                 language = prefs[Keys.LANGUAGE]?.let { code ->
                     AppLanguage.entries.find { it.code == code }
-                } ?: AppLanguage.VI,
+                } ?: AppLanguage.fromSystemLocale(),
                 themeMode = prefs[Keys.THEME_MODE]?.let { name ->
                     try { ThemeMode.valueOf(name) } catch (_: Exception) { ThemeMode.SYSTEM }
                 } ?: ThemeMode.SYSTEM,

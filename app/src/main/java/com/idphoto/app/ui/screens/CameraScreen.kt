@@ -27,7 +27,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,10 +52,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.exifinterface.media.ExifInterface
 import com.idphoto.app.processing.QualityChecker
 import com.idphoto.app.ui.LocalStrings
 import kotlinx.coroutines.Dispatchers
@@ -126,6 +130,7 @@ private suspend fun loadLatestGalleryThumbnail(context: Context): Bitmap? = with
 fun CameraScreen(
     selectedSizeName: String,
     onPhotoCaptured: (Bitmap) -> Unit,
+    onPhotoSelected: (Bitmap) -> Unit,
     onDismiss: () -> Unit,
     onChangeSizeClick: () -> Unit,
     onGalleryClick: () -> Unit,
@@ -152,10 +157,21 @@ fun CameraScreen(
     // Capture flash animation
     var showFlash by remember { mutableStateOf(false) }
 
+    // Captured photos list — photos accumulate here until user picks one to edit
+    val capturedPhotos = remember { mutableStateListOf<Bitmap>() }
+    val photosScrollState = rememberScrollState()
+
     // Latest gallery photo thumbnail
     var galleryThumbnail by remember { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(Unit) {
         galleryThumbnail = loadLatestGalleryThumbnail(context)
+    }
+
+    // Auto-scroll photo strip to the end when a new photo is captured
+    LaunchedEffect(capturedPhotos.size) {
+        if (capturedPhotos.isNotEmpty()) {
+            photosScrollState.animateScrollTo(photosScrollState.maxValue)
+        }
     }
 
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
@@ -168,7 +184,7 @@ fun CameraScreen(
         } else if (countdownActive && countdownValue == 0) {
             countdownActive = false
             // Trigger capture
-            showFlash = true
+            if (flashEnabled) showFlash = true
             isCapturing = true
             capturePhoto(
                 context = context,
@@ -178,6 +194,7 @@ fun CameraScreen(
                 onCaptured = { bitmap ->
                     isCapturing = false
                     showFlash = false
+                    capturedPhotos.add(bitmap)
                     onPhotoCaptured(bitmap)
                 },
                 onError = {
@@ -434,7 +451,7 @@ fun CameraScreen(
                                 countdownValue = timerSeconds
                                 countdownActive = true
                             } else {
-                                showFlash = true
+                                if (flashEnabled) showFlash = true
                                 isCapturing = true
                                 capturePhoto(
                                     context = context,
@@ -444,6 +461,7 @@ fun CameraScreen(
                                     onCaptured = { bitmap ->
                                         isCapturing = false
                                         showFlash = false
+                                        capturedPhotos.add(bitmap)
                                         onPhotoCaptured(bitmap)
                                     },
                                     onError = {
@@ -514,6 +532,50 @@ fun CameraScreen(
                 TimerOption("3s", timerSeconds == 3) { timerSeconds = 3 }
                 Spacer(modifier = Modifier.width(16.dp))
                 TimerOption("5s", timerSeconds == 5) { timerSeconds = 5 }
+            }
+        }
+
+        // ── Captured Photos Strip ──
+        if (capturedPhotos.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1A1A1A))
+                    .padding(vertical = 8.dp),
+            ) {
+                // Header row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "${strings.selectPhotoHint} (${capturedPhotos.size})",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                // Scrollable photo strip
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(photosScrollState)
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    capturedPhotos.forEachIndexed { index, bitmap ->
+                        CapturedPhotoItem(
+                            bitmap = bitmap,
+                            index = index + 1,
+                            onClick = { onPhotoSelected(bitmap) },
+                            onDelete = { capturedPhotos.removeAt(index) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -712,6 +774,88 @@ private fun TipChip(text: String, isOk: Boolean, modifier: Modifier = Modifier) 
     }
 }
 
+/**
+ * A single captured photo thumbnail in the strip.
+ * Tap to select for editing, long press badge to delete.
+ */
+@Composable
+private fun CapturedPhotoItem(
+    bitmap: Bitmap,
+    index: Int,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .border(2.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = "Photo $index",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        // Index badge
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(3.dp)
+                .size(20.dp)
+                .background(Color(0xFF1565C0).copy(alpha = 0.85f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "$index",
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        // Delete button
+        Surface(
+            onClick = onDelete,
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.6f),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(3.dp)
+                .size(20.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Delete",
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
+
+        // Tap hint overlay on bottom
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(vertical = 2.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "Edit",
+                color = Color.White,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
 // ── Camera helpers ──
 
 /**
@@ -852,21 +996,57 @@ private fun capturePhoto(
         executor,
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
-                if (bitmap != null) {
-                    val finalBitmap = if (isFrontCamera) {
-                        val matrix = Matrix().apply { preScale(-1f, 1f) }
-                        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                try {
+                    // Read EXIF orientation
+                    val exif = ExifInterface(photoFile.absolutePath)
+                    val orientation = exif.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL,
+                    )
+
+                    val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+                    if (bitmap != null) {
+                        val matrix = Matrix()
+
+                        // Apply EXIF rotation
+                        when (orientation) {
+                            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                                matrix.postRotate(90f)
+                                matrix.postScale(-1f, 1f)
+                            }
+                            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                                matrix.postRotate(270f)
+                                matrix.postScale(-1f, 1f)
+                            }
+                        }
+
+                        // Mirror horizontally for front camera (applied after rotation)
+                        if (isFrontCamera) {
+                            matrix.postScale(-1f, 1f)
+                        }
+
+                        val finalBitmap = Bitmap.createBitmap(
+                            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true,
+                        )
+                        if (finalBitmap != bitmap) bitmap.recycle()
+
+                        ContextCompat.getMainExecutor(context).execute {
+                            onCaptured(finalBitmap)
+                        }
                     } else {
-                        bitmap
+                        ContextCompat.getMainExecutor(context).execute { onError() }
                     }
-                    ContextCompat.getMainExecutor(context).execute {
-                        onCaptured(finalBitmap)
-                    }
-                } else {
+                } catch (e: Exception) {
+                    Log.e("CameraScreen", "Failed to process captured photo", e)
                     ContextCompat.getMainExecutor(context).execute { onError() }
+                } finally {
+                    photoFile.delete()
                 }
-                photoFile.delete()
             }
 
             override fun onError(exception: ImageCaptureException) {

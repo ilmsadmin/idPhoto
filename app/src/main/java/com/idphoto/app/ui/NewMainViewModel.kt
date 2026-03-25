@@ -58,7 +58,7 @@ data class AppUiState(
     val cutLinesEnabled: Boolean = true,
 
     // Settings
-    val language: AppLanguage = AppLanguage.VI,
+    val language: AppLanguage = AppLanguage.fromSystemLocale(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val photoDpi: Int = 300,
     val outputFormat: String = "JPEG",

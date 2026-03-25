@@ -135,6 +135,10 @@ fun NewMainScreen(
                         CameraScreen(
                             selectedSizeName = uiState.selectedSize.name,
                             onPhotoCaptured = { bitmap ->
+                                // Photo captured — stays in camera screen, no navigation
+                            },
+                            onPhotoSelected = { bitmap ->
+                                // User selected a photo from the strip to edit
                                 viewModel.onPhotoCaptured(bitmap)
                                 navController.navigate(NavRoutes.PROCESSING) {
                                     popUpTo(NavRoutes.CAMERA) { inclusive = true }
