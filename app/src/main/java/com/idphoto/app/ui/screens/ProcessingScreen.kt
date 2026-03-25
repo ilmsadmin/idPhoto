@@ -1,6 +1,5 @@
 package com.idphoto.app.ui.screens
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,10 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,17 +38,6 @@ fun ProcessingScreen(
     onCancel: () -> Unit,
 ) {
     val strings = LocalStrings.current
-
-    // Spinner animation
-    val infiniteTransition = rememberInfiniteTransition(label = "spinner")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-        ),
-        label = "rotate",
-    )
 
     Box(
         modifier = Modifier
@@ -94,7 +80,6 @@ fun ProcessingScreen(
                         PipelineStepRow(
                             label = step.label,
                             status = step.status,
-                            rotation = rotation,
                         )
                     }
                 }
@@ -153,7 +138,6 @@ fun ProcessingScreen(
 private fun PipelineStepRow(
     label: String,
     status: StepStatus,
-    rotation: Float,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -182,13 +166,10 @@ private fun PipelineStepRow(
                     tint = Color(0xFF4CAF50),
                 )
 
-                StepStatus.RUNNING -> Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .rotate(rotation),
-                    tint = Color.White,
+                StepStatus.RUNNING -> CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp,
                 )
 
                 StepStatus.ERROR -> Icon(

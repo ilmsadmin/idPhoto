@@ -77,11 +77,9 @@ dependencies {
     // ML Kit Selfie Segmentation (fast preview)
     implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta6")
 
-    // MediaPipe Face Mesh (468 landmarks for alignment)
-    implementation("com.google.mediapipe:tasks-vision:0.20230731")
-
     // ONNX Runtime for MODNet (deep processing)
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.19.2")
+    // v1.22.0+ ships 16KB-aligned native libs required for Android 15+ / Google Play
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.22.0")
 
     // Lifecycle ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")

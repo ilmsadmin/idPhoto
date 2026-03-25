@@ -583,56 +583,63 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         foreground = adjustBitmapBrightness(foreground, factor)
                     }
 
-                    // Render foreground lên background với user transform
-                    // Tính output size dựa trên target photo size (DPI chuẩn)
-                    val outputW = targetSize.widthPx
-                    val outputH = targetSize.heightPx
-
-                    val framed = if (bgOption != null && bgOption.gradientColors != null) {
-                        ImageUtils.renderFramedBitmapWithOption(
-                            foreground = foreground,
-                            bgOption = bgOption,
-                            scale = scale,
-                            offsetX = offsetX,
-                            offsetY = offsetY,
-                            frameWidth = frameWidth,
-                            frameHeight = frameHeight,
-                            outputWidth = outputW,
-                            outputHeight = outputH,
-                        )
+                    // ── QUAN TRỌNG: Composite foreground lên background ở FULL resolution ──
+                    // Giống hệt rebuildComposite() — pixel-by-pixel alpha blending ở resolution gốc.
+                    // PHẢI composite TRƯỚC khi scale, vì Canvas.drawBitmap() trên ảnh có alpha
+                    // sẽ interpolate premultiplied alpha khi scale → làm mờ viền tóc, lông mày.
+                    var compositeFull = if (bgOption != null && bgOption.gradientColors != null) {
+                        ImageUtils.compositeOnGradientBackground(foreground, bgOption)
                     } else {
                         val androidBgColor = android.graphics.Color.rgb(
                             (bgColor.red * 255).toInt(),
                             (bgColor.green * 255).toInt(),
                             (bgColor.blue * 255).toInt()
                         )
-                        ImageUtils.renderFramedBitmap(
-                            foreground = foreground,
-                            bgColor = androidBgColor,
-                            scale = scale,
-                            offsetX = offsetX,
-                            offsetY = offsetY,
-                            frameWidth = frameWidth,
-                            frameHeight = frameHeight,
-                            outputWidth = outputW,
-                            outputHeight = outputH,
-                        )
+                        ImageUtils.compositeOnBackground(foreground, androidBgColor)
                     }
 
                     // Apply outfit if selected — giống hệt rebuildComposite()
-                    var finalBitmap = framed
                     val outfitIndex = _uiState.value.selectedOutfitIndex
                     if (outfitIndex > 0 && outfitIndex < OutfitOverlay.outfitOptions.size) {
                         val outfit = OutfitOverlay.outfitOptions[outfitIndex]
-                        finalBitmap = OutfitOverlay.applyOutfit(framed, null, outfit)
+                        compositeFull = OutfitOverlay.applyOutfit(compositeFull, null, outfit)
                     }
 
-                    // Đảm bảo output đúng kích thước target
-                    val cropped = if (finalBitmap.width != targetSize.widthPx || finalBitmap.height != targetSize.heightPx) {
-                        PhotoSizeManager.cropToSize(finalBitmap, targetSize)
+                    // ── Bây giờ compositeFull là ảnh OPAQUE (không có alpha) giống preview ──
+                    // Render với transform (zoom/pan) lên output — dùng ảnh opaque nên
+                    // Canvas bilinear filter KHÔNG gây mờ viền.
+                    val targetW = targetSize.widthPx
+                    val targetH = targetSize.heightPx
+
+                    // ── Render trực tiếp ở target resolution ──
+                    // Tránh render hi-res rồi downscale (gây mờ tóc/lông mày).
+                    // renderFramedBitmap đã dùng highQualityScale bên trong.
+
+                    // renderFramedBitmap trên ảnh opaque — vẫn dùng bgColor để fill
+                    // vùng ngoài ảnh (khi user zoom in, viền bị lộ ra)
+                    val frameBgColor = if (bgOption != null && bgOption.gradientColors == null && bgOption.color != android.graphics.Color.TRANSPARENT) {
+                        bgOption.color
                     } else {
-                        finalBitmap
+                        android.graphics.Color.rgb(
+                            (bgColor.red * 255).toInt(),
+                            (bgColor.green * 255).toInt(),
+                            (bgColor.blue * 255).toInt()
+                        )
                     }
+                    val framed = ImageUtils.renderFramedBitmap(
+                        foreground = compositeFull,
+                        bgColor = frameBgColor,
+                        scale = scale,
+                        offsetX = offsetX,
+                        offsetY = offsetY,
+                        frameWidth = frameWidth,
+                        frameHeight = frameHeight,
+                        outputWidth = targetW,
+                        outputHeight = targetH,
+                    )
+
+                    // Không cần scale thêm — đã render đúng target size
+                    val cropped = framed
 
                     // Create print layout nếu user chọn
                     val printLayout = if (includePrintLayout) {
@@ -650,7 +657,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.PNG
                     val fileExt = if (outputFormat == "JPEG") "jpg" else "png"
                     val mimeType = if (outputFormat == "JPEG") "image/jpeg" else "image/png"
-                    val quality = if (outputFormat == "JPEG") 95 else 100
+                    val quality = if (outputFormat == "JPEG") 100 else 100
 
                     // Save to gallery
                     withContext(Dispatchers.IO) {

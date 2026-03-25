@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RadialGradient
 import android.graphics.Shader
@@ -208,7 +207,6 @@ object ImageUtils {
             canvas.drawColor(bgColor)
         }
 
-
         // Mapping ratio: frame-pixel → output-pixel
         val ratioX = outW.toFloat() / frameWidth.toFloat()
         val ratioY = outH.toFloat() / frameHeight.toFloat()
@@ -225,10 +223,8 @@ object ImageUtils {
         val fitY = (frameHeight - fittedH) / 2f
 
         // Step 2: graphicsLayer scale around center of Image (= center of frame)
-        // After scale, the fitted image is scaled around frame center
         val frameCx = frameWidth / 2f
         val frameCy = frameHeight / 2f
-        // New top-left after scaling around center:
         val scaledFitX = frameCx + (fitX - frameCx) * scale
         val scaledFitY = frameCy + (fitY - frameCy) * scale
 
@@ -239,20 +235,31 @@ object ImageUtils {
         // Map to output-pixel space
         val outDrawX = finalFrameX * ratioX
         val outDrawY = finalFrameY * ratioY
-        val outScaleX = fitScale * scale * ratioX
-        val outScaleY = fitScale * scale * ratioY
+        val totalScaleX = fitScale * scale * ratioX
+        val totalScaleY = fitScale * scale * ratioY
 
-        val matrix = Matrix().apply {
-            postScale(outScaleX, outScaleY)
-            postTranslate(outDrawX, outDrawY)
-        }
+        // ── HIGH-QUALITY RENDERING ──
+        // Thay vì dùng Matrix scale trên Canvas (bilinear kém chất lượng),
+        // pre-scale bitmap bằng multi-step halving (Lanczos-like quality)
+        // rồi chỉ dùng Canvas translate (không scale).
+        val destW = (foreground.width * totalScaleX).toInt().coerceAtLeast(1)
+        val destH = (foreground.height * totalScaleY).toInt().coerceAtLeast(1)
+
+        val scaledFg = highQualityScale(foreground, destW, destH)
 
         val paint = Paint().apply {
             isAntiAlias = true
             isFilterBitmap = true
+            isDither = false
         }
 
-        canvas.drawBitmap(foreground, matrix, paint)
+        // Vẽ ảnh đã scale sẵn tại vị trí đúng — Canvas KHÔNG scale thêm
+        canvas.drawBitmap(scaledFg, outDrawX, outDrawY, paint)
+
+        if (scaledFg != foreground) {
+            scaledFg.recycle()
+        }
+
         return result
     }
 
@@ -316,9 +323,16 @@ object ImageUtils {
         val outDrawY = finalFrameY * ratioY
         val outScaleX = fitScale * scale * ratioX
         val outScaleY = fitScale * scale * ratioY
-        val matrix = Matrix().apply { postScale(outScaleX, outScaleY); postTranslate(outDrawX, outDrawY) }
-        val fgPaint = Paint().apply { isAntiAlias = true; isFilterBitmap = true }
-        canvas.drawBitmap(foreground, matrix, fgPaint)
+
+        // ── HIGH-QUALITY RENDERING — pre-scale thay vì Matrix scale ──
+        val destW = (foreground.width * outScaleX).toInt().coerceAtLeast(1)
+        val destH = (foreground.height * outScaleY).toInt().coerceAtLeast(1)
+        val scaledFg = highQualityScale(foreground, destW, destH)
+
+        val fgPaint = Paint().apply { isAntiAlias = true; isFilterBitmap = true; isDither = false }
+        canvas.drawBitmap(scaledFg, outDrawX, outDrawY, fgPaint)
+        if (scaledFg != foreground) scaledFg.recycle()
+
         return result
     }
 
@@ -442,6 +456,52 @@ object ImageUtils {
 
         result.setPixels(resultPixels, 0, width, 0, 0, width, height)
         return result
+    }
+
+    /**
+     * High-quality bitmap scaling — sử dụng kỹ thuật multi-step halving.
+     *
+     * Khi downscale (ví dụ 3000px → 600px), bilinear filtering bình thường
+     * sẽ bỏ qua nhiều pixel → mất chi tiết tóc, lông mày.
+     *
+     * Multi-step halving: scale xuống 50% nhiều lần liên tiếp cho đến khi
+     * gần target size, rồi scale cuối cùng. Mỗi bước chỉ giảm 50% nên
+     * bilinear filter giữ được gần như toàn bộ chi tiết — tương đương Lanczos.
+     *
+     * Khi upscale: dùng trực tiếp createScaledBitmap (bilinear đủ tốt cho upscale).
+     */
+    fun highQualityScale(src: Bitmap, targetW: Int, targetH: Int): Bitmap {
+        if (src.width == targetW && src.height == targetH) return src
+
+        // Upscale — bilinear đủ tốt
+        if (targetW >= src.width && targetH >= src.height) {
+            return Bitmap.createScaledBitmap(src, targetW, targetH, true)
+        }
+
+        // Downscale — multi-step halving để giữ chi tiết
+        var current = src
+        var currentW = src.width
+        var currentH = src.height
+
+        // Giảm 50% mỗi bước cho đến khi kích thước < 2x target
+        while (currentW / 2 >= targetW && currentH / 2 >= targetH) {
+            val halfW = currentW / 2
+            val halfH = currentH / 2
+            val half = Bitmap.createScaledBitmap(current, halfW, halfH, true)
+            if (current != src) current.recycle()
+            current = half
+            currentW = halfW
+            currentH = halfH
+        }
+
+        // Bước cuối: scale từ current → target (tỉ lệ < 2x nên bilinear đủ tốt)
+        if (currentW != targetW || currentH != targetH) {
+            val finalBitmap = Bitmap.createScaledBitmap(current, targetW, targetH, true)
+            if (current != src) current.recycle()
+            return finalBitmap
+        }
+
+        return current
     }
 
     /**
