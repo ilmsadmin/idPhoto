@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M24,24 m-24,0 a24,24 0,1 1,48 0 a24,24 0,1 1,-48 0" />
+
+    <!-- Person head -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,16 m-5,0 a5,5 0,1 1,10 0 a5,5 0,1 1,-10 0" />
+
+    <!-- Person shoulders arc -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M13,36 Q13,25 24,25 Q35,25 35,36 Z" />
+
+    <!-- Crop mark top-left -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M10,16 L10,10 L16,10"
+        android:strokeAlpha="0.5" />
+
+    <!-- Crop mark top-right -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M38,16 L38,10 L32,10"
+        android:strokeAlpha="0.5" />
+
+    <!-- Crop mark bottom-left -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M10,32 L10,38 L16,38"
+        android:strokeAlpha="0.5" />
+
+    <!-- Crop mark bottom-right -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M38,32 L38,38 L32,38"
+        android:strokeAlpha="0.5" />
+
+</vector>

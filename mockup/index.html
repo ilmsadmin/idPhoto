@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ID Photo Pro - Mockup</title>
+    <style>
+        :root {
+            --primary: #1565C0;
+            --primary-light: #E8F0FE;
+            --primary-dark: #0D47A1;
+            --accent: #F57C00;
+            --bg: #F4F6F9;
+            --surface: #FFFFFF;
+            --text: #1A1C1E;
+            --text2: #5F6368;
+            --text3: #9AA0A6;
+            --divider: #E8EAED;
+            --success: #2E7D32;
+            --error: #C62828;
+            --radius: 16px;
+            --radius-sm: 12px;
+            --shadow: 0 2px 12px rgba(0,0,0,0.07);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+            --tr: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            font-family: -apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+            background: #C8CED6;
+            display:flex; justify-content:center; align-items:flex-start;
+            min-height:100vh; padding:20px;
+        }
+        ::-webkit-scrollbar { display:none; }
+
+        /* ===== PHONE ===== */
+        .phone {
+            width:393px; height:852px; background:var(--bg);
+            border-radius:44px; overflow:hidden; position:relative;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            border:8px solid #1a1a1a;
+        }
+        .notch {
+            position:absolute; top:10px; left:50%; transform:translateX(-50%);
+            width:120px; height:34px; background:#1a1a1a; border-radius:20px; z-index:999;
+        }
+        .statusbar {
+            height:54px; padding:14px 28px 0; display:flex;
+            justify-content:space-between; align-items:center;
+            position:relative; z-index:100;
+        }
+        .statusbar .time { font-size:15px; font-weight:600; }
+        .statusbar .icons { display:flex; gap:5px; align-items:center; }
+        .statusbar .icons svg { width:17px; height:17px; }
+        .statusbar.light { color:white; }
+        .statusbar.light svg { color:white; }
+        .statusbar.dark { color:var(--text); }
+        .statusbar.dark svg { color:var(--text); }
+
+        /* ===== SCREENS ===== */
+        .scr {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            opacity:0; pointer-events:none; transition:opacity 0.4s ease;
+            overflow-y:auto; overflow-x:hidden;
+        }
+        .scr.active { opacity:1; pointer-events:all; }
+
+        /* ===== SPLASH ===== */
+        .splash {
+            background: linear-gradient(180deg, #1565C0 0%, #0D47A1 100%);
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        }
+        .splash-icon {
+            width:120px; height:120px; background:white; border-radius:28px;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 8px 32px rgba(0,0,0,0.2);
+            margin-bottom:28px;
+        }
+        .splash-icon svg { width:64px; height:64px; color:var(--primary); }
+        .splash h1 { color:white; font-size:32px; font-weight:800; margin-bottom:8px; letter-spacing:-0.5px; }
+        .splash p { color:rgba(255,255,255,0.7); font-size:15px; }
+        .splash-loader {
+            position:absolute; bottom:80px;
+            width:32px; height:32px; border:3px solid rgba(255,255,255,0.2);
+            border-top-color:white; border-radius:50%;
+            animation:spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        /* ===== HOME ===== */
+        .home { background:var(--bg); }
+        .home-header {
+            background: linear-gradient(180deg, #1565C0 0%, #1976D2 100%);
+            padding:54px 0 28px; text-align:center;
+            border-radius: 0 0 28px 28px;
+            position:relative;
+        }
+        .home-header h1 { color:white; font-size:24px; font-weight:800; margin-bottom:4px; letter-spacing:-0.3px; }
+        .home-header p { color:rgba(255,255,255,0.7); font-size:13px; }
+        .home-header .lang-btn {
+            position:absolute; top:60px; right:20px;
+            background:rgba(255,255,255,0.18); border:none; color:white;
+            padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600;
+            cursor:pointer; display:flex; align-items:center; gap:4px;
+        }
+        .home-header .lang-btn svg { width:14px; height:14px; }
+        .home-header .settings-btn {
+            position:absolute; top:60px; left:20px;
+            background:rgba(255,255,255,0.18); border:none; color:white;
+            width:34px; height:34px; border-radius:50%; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .home-header .settings-btn svg { width:20px; height:20px; }
+
+        /* Main 2 buttons */
+        .home-actions {
+            display:flex; gap:14px; padding:20px 20px 0; margin-top:-1px;
+        }
+        .home-act {
+            flex:1; border-radius:20px; padding:28px 16px 24px;
+            display:flex; flex-direction:column; align-items:center; gap:12px;
+            cursor:pointer; transition:var(--tr); border:none;
+            box-shadow:0 2px 16px rgba(0,0,0,0.08);
+        }
+        .home-act:active { transform:scale(0.96); }
+        .home-act.cam { background: var(--primary); }
+        .home-act.gal { background: var(--accent); }
+        .home-act-icon {
+            width:64px; height:64px; background:rgba(255,255,255,0.2);
+            border-radius:18px; display:flex; align-items:center; justify-content:center;
+        }
+        .home-act-icon svg { width:34px; height:34px; color:white; }
+        .home-act h3 { color:white; font-size:17px; font-weight:700; }
+        .home-act span { color:rgba(255,255,255,0.75); font-size:12px; }
+
+        /* Sizes section */
+        .home-sizes { padding:24px 20px 0; }
+        .home-sizes-hd { margin-bottom:4px; }
+        .home-sizes-hd h3 { font-size:17px; font-weight:800; color:var(--text); }
+        .home-sizes-hd p { font-size:12px; color:var(--text3); margin-top:2px; }
+        .size-grid {
+            display:grid; grid-template-columns:1fr 1fr; gap:10px;
+            margin-top:14px;
+        }
+        .size-item {
+            background:var(--surface); border-radius:var(--radius-sm);
+            padding:14px; display:flex; align-items:center; gap:12px;
+            cursor:pointer; transition:var(--tr);
+            box-shadow:0 1px 4px rgba(0,0,0,0.04);
+            border:2px solid transparent;
+        }
+        .size-item:active { border-color:var(--primary); background:var(--primary-light); }
+        .size-item-icon {
+            width:44px; height:44px; border-radius:10px;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .size-item-icon svg { width:22px; height:22px; }
+        .size-item-icon.si-blue { background:#E3F2FD; color:#1565C0; }
+        .size-item-icon.si-red { background:#FFEBEE; color:#C62828; }
+        .size-item-icon.si-gray { background:#F5F5F5; color:#616161; }
+        .size-item-icon.si-indigo { background:#E8EAF6; color:#283593; }
+        .size-item h4 { font-size:15px; font-weight:700; color:var(--text); }
+        .size-item p { font-size:11px; color:var(--text3); margin-top:1px; }
+        .view-all-btn {
+            display:flex; align-items:center; justify-content:center; gap:6px;
+            margin-top:14px; padding:14px; width:100%;
+            border:2px solid var(--primary); border-radius:var(--radius-sm);
+            background:transparent; color:var(--primary);
+            font-size:14px; font-weight:700; cursor:pointer;
+            transition:var(--tr); letter-spacing:0.3px;
+        }
+        .view-all-btn:active { background:var(--primary-light); }
+        .view-all-btn svg { width:18px; height:18px; }
+
+        /* ===== SIZE SELECT SCREEN ===== */
+        .sizes-scr { background:var(--bg); }
+        .topbar {
+            background:var(--surface); padding:60px 20px 14px;
+            display:flex; align-items:center; gap:12px;
+            position:sticky; top:0; z-index:50;
+        }
+        .topbar .back {
+            width:40px; height:40px; border-radius:12px; border:none;
+            background:var(--bg); display:flex; align-items:center; justify-content:center;
+            cursor:pointer;
+        }
+        .topbar .back svg { width:22px; height:22px; color:var(--text); }
+        .topbar h2 { font-size:20px; font-weight:800; color:var(--text); flex:1; }
+        .search-box {
+            margin:12px 20px; background:var(--surface); border-radius:var(--radius-sm);
+            padding:12px 16px; display:flex; align-items:center; gap:10px;
+            box-shadow:0 1px 4px rgba(0,0,0,0.04);
+        }
+        .search-box svg { width:20px; height:20px; color:var(--text3); flex-shrink:0; }
+        .search-box input {
+            border:none; outline:none; font-size:14px; color:var(--text);
+            background:transparent; flex:1; font-family:inherit;
+        }
+        .search-box input::placeholder { color:var(--text3); }
+        .tabs {
+            display:flex; gap:8px; padding:4px 20px 14px;
+            overflow-x:auto;
+        }
+        .tab {
+            padding:8px 18px; border-radius:24px; font-size:13px; font-weight:600;
+            border:1.5px solid var(--divider); background:var(--surface);
+            color:var(--text2); cursor:pointer; white-space:nowrap; transition:var(--tr);
+        }
+        .tab.active { background:var(--primary); color:white; border-color:var(--primary); }
+        .slist { padding:0 20px 32px; display:flex; flex-direction:column; gap:10px; }
+        .slist-item {
+            background:var(--surface); border-radius:var(--radius-sm);
+            padding:16px; display:flex; align-items:center; gap:14px;
+            cursor:pointer; transition:var(--tr); border:2px solid transparent;
+            box-shadow:0 1px 4px rgba(0,0,0,0.04);
+        }
+        .slist-item:active { border-color:var(--primary); background:var(--primary-light); }
+        .slist-thumb {
+            width:48px; height:56px; background:var(--primary-light);
+            border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .slist-thumb svg { width:26px; height:26px; color:var(--primary); }
+        .slist-info { flex:1; }
+        .slist-info h4 { font-size:15px; font-weight:700; color:var(--text); margin-bottom:2px; }
+        .slist-info p { font-size:12px; color:var(--text3); }
+        .slist-arrow svg { width:20px; height:20px; color:var(--text3); }
+        .custom-size-item {
+            background:linear-gradient(135deg, #E8F0FE, #F3E8FD);
+            border:2px dashed var(--primary);
+        }
+        .custom-size-item .slist-thumb { background:rgba(21,101,192,0.12); }
+
+        /* ===== CAMERA ===== */
+        .cam-scr { background:#000; display:flex; flex-direction:column; }
+        .cam-top {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:60px 20px 12px; z-index:10;
+        }
+        .cam-top button {
+            width:40px; height:40px; border-radius:50%; border:none;
+            background:rgba(255,255,255,0.15); display:flex;
+            align-items:center; justify-content:center; cursor:pointer;
+        }
+        .cam-top button svg { width:22px; height:22px; color:white; }
+        .cam-top .size-tag {
+            color:white; font-size:13px; font-weight:600;
+            background:rgba(255,255,255,0.15); padding:8px 16px; border-radius:20px;
+            cursor:pointer;
+        }
+        .viewfinder {
+            flex:1; position:relative; display:flex;
+            align-items:center; justify-content:center;
+            background:linear-gradient(180deg,#1a1a2e,#2d2d44);
+        }
+        .guide {
+            width:200px; height:260px; border:2px dashed rgba(255,255,255,0.4);
+            border-radius:100px 100px 16px 16px; position:relative;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        }
+        .guide-face { width:80px; height:96px; border:2px solid rgba(255,255,255,0.25); border-radius:50%; margin-bottom:10px; }
+        .guide-body { width:120px; height:56px; border:2px solid rgba(255,255,255,0.25); border-radius:56px 56px 0 0; }
+        .guide-txt {
+            position:absolute; bottom:-36px; color:rgba(255,255,255,0.6);
+            font-size:13px; white-space:nowrap;
+        }
+        .guide-corners { position:absolute; inset:-8px; }
+        .guide-corners::before, .guide-corners::after {
+            content:''; position:absolute; width:24px; height:24px;
+            border-color:#4FC3F7; border-style:solid;
+        }
+        .guide-corners::before { top:0; left:0; border-width:3px 0 0 3px; border-radius:6px 0 0 0; }
+        .guide-corners::after { top:0; right:0; border-width:3px 3px 0 0; border-radius:0 6px 0 0; }
+        .guide-corners-b { position:absolute; inset:-8px; }
+        .guide-corners-b::before, .guide-corners-b::after {
+            content:''; position:absolute; width:24px; height:24px;
+            border-color:#4FC3F7; border-style:solid;
+        }
+        .guide-corners-b::before { bottom:0; left:0; border-width:0 0 3px 3px; border-radius:0 0 0 6px; }
+        .guide-corners-b::after { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 6px 0; }
+        .ai-tag {
+            position:absolute; top:16px; right:16px;
+            background:rgba(21,101,192,0.85); color:white;
+            padding:6px 12px; border-radius:16px; font-size:11px; font-weight:600;
+            display:flex; align-items:center; gap:4px; backdrop-filter:blur(8px);
+        }
+        .ai-tag svg { width:14px; height:14px; }
+        .cam-controls {
+            padding:16px 20px 32px;
+            background:rgba(0,0,0,0.5); backdrop-filter:blur(16px);
+        }
+        .cam-tips { display:flex; gap:8px; margin-bottom:20px; overflow-x:auto; }
+        .cam-tip {
+            display:flex; align-items:center; gap:5px;
+            background:rgba(255,255,255,0.1); padding:7px 12px;
+            border-radius:20px; font-size:11px; color:rgba(255,255,255,0.8);
+            white-space:nowrap;
+        }
+        .cam-tip svg { width:14px; height:14px; flex-shrink:0; }
+        .cam-tip.ok svg { color:#81C784; }
+        .cam-tip.warn svg { color:#FFB74D; }
+        .cam-btns { display:flex; align-items:center; justify-content:space-around; }
+        .gallery-btn {
+            width:48px; height:48px; border-radius:12px;
+            background:rgba(255,255,255,0.12); border:2px solid rgba(255,255,255,0.25);
+            display:flex; align-items:center; justify-content:center; cursor:pointer;
+        }
+        .gallery-btn svg { width:24px; height:24px; color:white; }
+        .shutter {
+            width:72px; height:72px; border-radius:50%; background:white;
+            border:4px solid rgba(255,255,255,0.3); cursor:pointer;
+            position:relative; transition:var(--tr);
+        }
+        .shutter::before {
+            content:''; position:absolute; inset:4px; border-radius:50%;
+            background:white; transition:var(--tr);
+        }
+        .shutter:active::before { background:var(--primary); }
+        .flip-btn {
+            width:48px; height:48px; border-radius:50%;
+            background:rgba(255,255,255,0.12); border:none;
+            display:flex; align-items:center; justify-content:center; cursor:pointer;
+        }
+        .flip-btn svg { width:24px; height:24px; color:white; }
+
+        /* ===== EDIT ===== */
+        .edit-scr { background:var(--bg); display:flex; flex-direction:column; }
+        .edit-preview {
+            flex:1; display:flex; align-items:center; justify-content:center;
+            padding:20px; position:relative;
+        }
+        .edit-frame {
+            width:200px; height:260px; background:linear-gradient(135deg,#D0D7E2,#BCC5D3);
+            border-radius:8px; box-shadow:var(--shadow-lg); position:relative;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        }
+        .edit-frame .ef-head { width:60px; height:74px; background:rgba(255,255,255,0.4); border-radius:50%; margin-bottom:8px; }
+        .edit-frame .ef-body { width:96px; height:48px; background:rgba(255,255,255,0.4); border-radius:48px 48px 0 0; }
+        .bg-pick {
+            position:absolute; bottom:12px; display:flex; gap:8px;
+            background:var(--surface); padding:8px 14px; border-radius:24px;
+            box-shadow:var(--shadow);
+        }
+        .bg-dot {
+            width:30px; height:30px; border-radius:50%; cursor:pointer;
+            border:3px solid transparent; transition:var(--tr);
+        }
+        .bg-dot:active { transform:scale(0.85); }
+        .bg-dot.sel { border-color:var(--primary); box-shadow:0 0 0 2px white, 0 0 0 4px var(--primary); }
+        .bg-dot.w { background:#fff; border:3px solid #ddd; }
+        .bg-dot.w.sel { border-color:var(--primary); }
+        .bg-dot.bl { background:#1565C0; }
+        .bg-dot.rd { background:#C62828; }
+        .bg-dot.gr { background:#9E9E9E; }
+        .bg-dot.rainbow { background:conic-gradient(red,yellow,lime,aqua,blue,magenta,red); }
+        .edit-tools {
+            background:var(--surface); border-radius:var(--radius) var(--radius) 0 0;
+            padding:14px 0 28px;
+        }
+        .edit-tools-row {
+            display:flex; gap:2px; padding:0 12px; overflow-x:auto;
+        }
+        .etool {
+            display:flex; flex-direction:column; align-items:center; gap:6px;
+            min-width:68px; padding:10px 6px; border-radius:var(--radius-sm);
+            cursor:pointer; transition:var(--tr); border:none; background:none;
+        }
+        .etool:active { background:var(--primary-light); }
+        .etool-ic {
+            width:44px; height:44px; border-radius:12px; background:var(--bg);
+            display:flex; align-items:center; justify-content:center;
+        }
+        .etool-ic svg { width:22px; height:22px; color:var(--text2); }
+        .etool:active .etool-ic { background:var(--primary-light); }
+        .etool:active .etool-ic svg { color:var(--primary); }
+        .etool span { font-size:10px; font-weight:500; color:var(--text2); }
+
+        /* ===== PRINT ===== */
+        .print-scr { background:var(--bg); display:flex; flex-direction:column; }
+        .print-preview {
+            flex:1; display:flex; align-items:center; justify-content:center; padding:20px;
+        }
+        .print-sheet {
+            width:280px; height:380px; background:white; border-radius:8px;
+            box-shadow:var(--shadow-lg); padding:14px;
+            display:grid; grid-template-columns:repeat(3,1fr);
+            grid-template-rows:repeat(3,1fr); gap:6px;
+        }
+        .print-ph {
+            background:linear-gradient(135deg,#D0D7E2,#BCC5D3); border-radius:4px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        }
+        .print-ph .mh { width:18px; height:22px; background:rgba(255,255,255,0.5); border-radius:50%; margin-bottom:2px; }
+        .print-ph .mb { width:30px; height:12px; background:rgba(255,255,255,0.5); border-radius:12px 12px 0 0; }
+        .print-opts {
+            background:var(--surface); border-radius:var(--radius) var(--radius) 0 0;
+            padding:20px;
+        }
+        .popt-row {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:12px 0; border-bottom:1px solid var(--divider);
+        }
+        .popt-row:last-child { border-bottom:none; }
+        .popt-label { display:flex; align-items:center; gap:10px; }
+        .popt-label svg { width:20px; height:20px; color:var(--text2); }
+        .popt-label span { font-size:14px; font-weight:500; color:var(--text); }
+        .stepper { display:flex; align-items:center; gap:12px; }
+        .stepper button {
+            width:30px; height:30px; border-radius:8px; border:1.5px solid var(--divider);
+            background:var(--surface); font-size:16px; color:var(--text); cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .stepper span { font-size:16px; font-weight:600; min-width:20px; text-align:center; }
+        .paper-sel {
+            font-size:13px; font-weight:600; color:var(--primary);
+            background:var(--primary-light); border:none; padding:6px 12px;
+            border-radius:8px; cursor:pointer;
+        }
+        .toggle {
+            width:46px; height:26px; background:#ccc; border-radius:13px;
+            position:relative; cursor:pointer; transition:var(--tr);
+        }
+        .toggle.on { background:var(--primary); }
+        .toggle::after {
+            content:''; position:absolute; width:20px; height:20px;
+            background:white; border-radius:50%; top:3px; left:3px;
+            transition:var(--tr); box-shadow:0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle.on::after { left:23px; }
+        .print-btns { display:flex; gap:10px; margin-top:16px; }
+        .pbtn {
+            flex:1; padding:14px; border-radius:var(--radius-sm); border:none;
+            font-size:14px; font-weight:600; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            transition:var(--tr);
+        }
+        .pbtn:active { transform:scale(0.97); }
+        .pbtn.pri { background:var(--primary); color:white; }
+        .pbtn.sec { background:var(--bg); color:var(--text); }
+        .pbtn svg { width:20px; height:20px; }
+
+        /* ===== SETTINGS ===== */
+        .settings-scr { background:var(--bg); }
+        .s-section { padding:16px 20px 8px; }
+        .s-section-title {
+            font-size:11px; font-weight:700; color:var(--text3);
+            text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;
+        }
+        .s-group {
+            background:var(--surface); border-radius:var(--radius-sm);
+            overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04);
+        }
+        .s-item {
+            display:flex; align-items:center; padding:14px 16px; gap:14px;
+            cursor:pointer; transition:var(--tr); border-bottom:1px solid var(--divider);
+        }
+        .s-item:last-child { border-bottom:none; }
+        .s-item:active { background:var(--bg); }
+        .s-icon {
+            width:38px; height:38px; border-radius:10px;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .s-icon svg { width:20px; height:20px; }
+        .s-info { flex:1; }
+        .s-info h4 { font-size:14px; font-weight:600; color:var(--text); }
+        .s-info p { font-size:11px; color:var(--text3); margin-top:1px; }
+        .s-arrow svg { width:16px; height:16px; color:var(--text3); }
+
+        /* Language Modal */
+        .lang-modal {
+            position:absolute; inset:0; z-index:500;
+            background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);
+            display:flex; align-items:flex-end; justify-content:center;
+            opacity:0; pointer-events:none; transition:opacity 0.3s ease;
+        }
+        .lang-modal.show { opacity:1; pointer-events:all; }
+        .lang-sheet {
+            background:var(--surface); width:100%; border-radius:24px 24px 0 0;
+            padding:20px 20px 40px; max-height:70%;
+            transform:translateY(100%); transition:transform 0.35s ease;
+        }
+        .lang-modal.show .lang-sheet { transform:translateY(0); }
+        .lang-sheet-handle {
+            width:40px; height:4px; background:var(--divider);
+            border-radius:2px; margin:0 auto 20px;
+        }
+        .lang-sheet h3 { font-size:18px; font-weight:800; color:var(--text); margin-bottom:16px; text-align:center; }
+        .lang-option {
+            display:flex; align-items:center; gap:14px; padding:14px;
+            border-radius:var(--radius-sm); cursor:pointer; transition:var(--tr);
+            border:2px solid transparent; margin-bottom:6px;
+        }
+        .lang-option:active, .lang-option.active { border-color:var(--primary); background:var(--primary-light); }
+        .lang-flag {
+            width:40px; height:40px; border-radius:10px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:24px; background:var(--bg);
+        }
+        .lang-option-info h4 { font-size:14px; font-weight:600; color:var(--text); }
+        .lang-option-info p { font-size:12px; color:var(--text3); }
+        .lang-check { margin-left:auto; }
+        .lang-check svg { width:22px; height:22px; color:var(--primary); }
+
+        /* Nav Tabs (mockup switcher) */
+        .mockup-nav {
+            position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.85); border-radius:30px; padding:8px 12px;
+            display:flex; gap:4px; z-index:1000; backdrop-filter:blur(12px);
+        }
+        .mockup-nav button {
+            padding:7px 12px; border-radius:18px; border:none;
+            font-size:11px; font-weight:600; cursor:pointer;
+            color:rgba(255,255,255,0.5); background:transparent;
+            transition:var(--tr); white-space:nowrap;
+        }
+        .mockup-nav button.active { background:white; color:#1a1a1a; }
+    </style>
+</head>
+<body>
+
+<!-- Mockup Nav -->
+<div class="mockup-nav">
+    <button class="active" onclick="go('splash')">Splash</button>
+    <button onclick="go('home')">Home</button>
+    <button onclick="go('sizes')">Kích thước</button>
+    <button onclick="go('camera')">Camera</button>
+    <button onclick="go('edit')">Sửa ảnh</button>
+    <button onclick="go('print')">In ảnh</button>
+    <button onclick="go('settings')">Cài đặt</button>
+</div>
+
+<!-- Phone -->
+<div class="phone">
+    <div class="notch"></div>
+
+    <!-- ==================== SPLASH ==================== -->
+    <div class="scr splash active" id="s-splash">
+        <div class="statusbar light">
+            <span class="time">9:41</span>
+            <div class="icons">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 20V4"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.5" y="8.5" width="12" height="7" rx="1"/><path d="M21 10v4a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"/></svg>
+            </div>
+        </div>
+        <div class="splash-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+                <circle cx="12" cy="13" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+        </div>
+        <h1>ID Photo Pro</h1>
+        <p data-i18n="splash_sub">Ảnh thẻ chuyên nghiệp</p>
+        <div class="splash-loader"></div>
+    </div>
+
+    <!-- ==================== HOME ==================== -->
+    <div class="scr home" id="s-home">
+        <div class="home-header">
+            <div class="statusbar light">
+                <span class="time">9:41</span>
+                <div class="icons">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 20V4"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.5" y="8.5" width="12" height="7" rx="1"/><path d="M21 10v4a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"/></svg>
+                </div>
+            </div>
+            <button class="settings-btn" onclick="go('settings')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="lang-btn" onclick="openLang()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/>
+                </svg>
+                <span id="lang-label">VI</span>
+            </button>
+            <h1>ID Photo Pro</h1>
+            <p data-i18n="home_sub">Chụp ảnh thẻ chuyên nghiệp</p>
+        </div>
+
+        <!-- 2 Main Actions -->
+        <div class="home-actions">
+            <div class="home-act cam" onclick="go('camera')">
+                <div class="home-act-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                        <circle cx="12" cy="13" r="1.5" fill="currentColor" stroke="none"/>
+                    </svg>
+                </div>
+                <h3 data-i18n="btn_camera">Chụp ảnh</h3>
+                <span data-i18n="btn_camera_sub">Chụp mới</span>
+            </div>
+            <div class="home-act gal" onclick="go('edit')">
+                <div class="home-act-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="3"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                </div>
+                <h3 data-i18n="btn_gallery">Thư viện</h3>
+                <span data-i18n="btn_gallery_sub">Chọn ảnh có sẵn</span>
+            </div>
+        </div>
+
+        <!-- Popular Sizes -->
+        <div class="home-sizes">
+            <div class="home-sizes-hd">
+                <h3 data-i18n="popular_sizes">Kích cỡ phổ biến</h3>
+                <p data-i18n="popular_sizes_sub">Chọn nhanh và chụp ảnh</p>
+            </div>
+            <div class="size-grid">
+                <div class="size-item" onclick="go('camera')">
+                    <div class="size-item-icon si-blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>
+                    </div>
+                    <div><h4>2x3 cm</h4><p>CMND, CCCD</p></div>
+                </div>
+                <div class="size-item" onclick="go('camera')">
+                    <div class="size-item-icon si-red">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>
+                    </div>
+                    <div><h4>3x4 cm</h4><p data-i18n="sz_passport">Hộ chiếu, Visa</p></div>
+                </div>
+                <div class="size-item" onclick="go('camera')">
+                    <div class="size-item-icon si-gray">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>
+                    </div>
+                    <div><h4>4x6 cm</h4><p data-i18n="sz_resume">Sơ yếu lý lịch</p></div>
+                </div>
+                <div class="size-item" onclick="go('camera')">
+                    <div class="size-item-icon si-indigo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>
+                    </div>
+                    <div><h4>3.5x4.5 cm</h4><p>Visa Schengen</p></div>
+                </div>
+            </div>
+            <button class="view-all-btn" onclick="go('sizes')">
+                <span data-i18n="view_all_sizes">XEM TẤT CẢ KÍCH CỠ</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+        <div style="height:40px"></div>
+    </div>
+
+    <!-- ==================== SIZE SELECT ==================== -->
+    <div class="scr sizes-scr" id="s-sizes">
+        <div class="topbar">
+            <button class="back" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h2 data-i18n="select_size">Chọn kích thước</h2>
+        </div>
+        <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" data-i18n-placeholder="search_placeholder" placeholder="Tìm kiếm kích thước, quốc gia...">
+        </div>
+        <div class="tabs" id="country-tabs">
+            <button class="tab active" data-country="vn">Việt Nam</button>
+            <button class="tab" data-country="us">Mỹ / US</button>
+            <button class="tab" data-country="eu">Châu Âu</button>
+            <button class="tab" data-country="jp">Nhật Bản</button>
+            <button class="tab" data-country="kr">Hàn Quốc</button>
+            <button class="tab" data-country="cn">Trung Quốc</button>
+            <button class="tab" data-country="th">Thái Lan</button>
+            <button class="tab" data-country="au">Úc</button>
+        </div>
+        <div class="slist" id="sizes-list">
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>CCCD / Căn cước công dân</h4><p>3×4 cm · 354×472 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="11" r="3"/><path d="M15 9h4M15 13h3"/></svg></div>
+                <div class="slist-info"><h4>Hộ chiếu Việt Nam</h4><p>4×6 cm · 472×708 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Bằng lái xe (GPLX)</h4><p>3×4 cm · 354×472 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Sơ yếu lý lịch</h4><p>4×6 cm · 472×708 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Thẻ sinh viên / Nhân viên</h4><p>2×3 cm · 236×354 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Visa Schengen</h4><p>3.5×4.5 cm · 413×531 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M7 19c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg></div>
+                <div class="slist-info"><h4>Visa Mỹ (US)</h4><p>5×5 cm · 600×600 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Visa Nhật Bản</h4><p>4.5×4.5 cm · 531×531 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Visa Hàn Quốc</h4><p>3.5×4.5 cm · 413×531 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Visa Trung Quốc</h4><p>3.3×4.8 cm · 390×567 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Visa Úc (Australia)</h4><p>3.5×4.5 cm · 413×531 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 19c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg></div>
+                <div class="slist-info"><h4>Visa Thái Lan</h4><p>3.5×4.5 cm · 413×531 px</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="slist-item custom-size-item" onclick="go('camera')">
+                <div class="slist-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+                <div class="slist-info"><h4 data-i18n="custom_size">Tùy chỉnh kích thước</h4><p data-i18n="custom_size_sub">Nhập kích thước tùy ý</p></div>
+                <div class="slist-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CAMERA ==================== -->
+    <div class="scr cam-scr" id="s-camera">
+        <div class="cam-top">
+            <button onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <div class="size-tag" onclick="go('sizes')">CCCD · 3×4 cm ▾</div>
+            <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></button>
+        </div>
+        <div class="viewfinder">
+            <div class="ai-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg>
+                AI Detect
+            </div>
+            <div class="guide">
+                <div class="guide-corners"></div>
+                <div class="guide-corners-b"></div>
+                <div class="guide-face"></div>
+                <div class="guide-body"></div>
+                <div class="guide-txt" data-i18n="guide_txt">Đặt khuôn mặt vào khung hình</div>
+            </div>
+        </div>
+        <div class="cam-controls">
+            <div class="cam-tips">
+                <div class="cam-tip ok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg><span data-i18n="tip_light">Ánh sáng tốt</span></div>
+                <div class="cam-tip warn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg><span data-i18n="tip_face">Giữ thẳng mặt</span></div>
+                <div class="cam-tip ok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg><span data-i18n="tip_bg">Phông nền OK</span></div>
+            </div>
+            <div class="cam-btns">
+                <div class="gallery-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+                <div class="shutter" onclick="go('edit')"></div>
+                <button class="flip-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 16v4H4v-4"/><polyline points="14 16 20 16 20 10"/><polyline points="10 8 4 8 4 14"/><path d="M4 8l5 5M20 16l-5-5"/></svg></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== EDIT ==================== -->
+    <div class="scr edit-scr" id="s-edit">
+        <div class="topbar">
+            <button class="back" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h2 data-i18n="edit_title">Chỉnh sửa</h2>
+            <button style="margin-left:auto;background:var(--primary);color:white;border:none;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="go('print')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:16px;height:16px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span data-i18n="save">Lưu</span>
+            </button>
+        </div>
+        <div class="edit-preview">
+            <div class="edit-frame">
+                <div class="ef-head"></div>
+                <div class="ef-body"></div>
+            </div>
+            <div class="bg-pick">
+                <div class="bg-dot w sel" onclick="pickBg(this,'#F0F0F0')"></div>
+                <div class="bg-dot bl" onclick="pickBg(this,'linear-gradient(135deg,#1565C0,#42A5F5)')"></div>
+                <div class="bg-dot rd" onclick="pickBg(this,'linear-gradient(135deg,#C62828,#EF5350)')"></div>
+                <div class="bg-dot gr" onclick="pickBg(this,'linear-gradient(135deg,#757575,#BDBDBD)')"></div>
+                <div class="bg-dot rainbow" onclick="pickBg(this,'linear-gradient(135deg,#E1BEE7,#B39DDB)')"></div>
+            </div>
+        </div>
+        <div class="edit-tools">
+            <div class="edit-tools-row">
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg></div><span data-i18n="t_crop">Cắt</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/><line x1="18" y1="4" x2="22" y2="8" stroke-dasharray="2 2"/></svg></div><span data-i18n="t_bg">Xóa phông</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M14.31 8l5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94"/></svg></div><span data-i18n="t_color">Đổi nền</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></div><span data-i18n="t_beauty">Làm đẹp</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg></div><span data-i18n="t_bright">Độ sáng</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3v18M18 3v18M6 9h12M6 15h12"/></svg></div><span data-i18n="t_suit">Đổi áo</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg></div><span data-i18n="t_rotate">Xoay</span></button>
+                <button class="etool"><div class="etool-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div><span data-i18n="t_print">In ảnh</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PRINT ==================== -->
+    <div class="scr print-scr" id="s-print">
+        <div class="topbar">
+            <button class="back" onclick="go('edit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h2 data-i18n="print_title">Bố cục in</h2>
+        </div>
+        <div class="print-preview">
+            <div class="print-sheet">
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+                <div class="print-ph"><div class="mh"></div><div class="mb"></div></div>
+            </div>
+        </div>
+        <div class="print-opts">
+            <div class="popt-row">
+                <div class="popt-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span data-i18n="p_qty">Số lượng</span></div>
+                <div class="stepper"><button>−</button><span>9</span><button>+</button></div>
+            </div>
+            <div class="popt-row">
+                <div class="popt-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span data-i18n="p_paper">Khổ giấy</span></div>
+                <button class="paper-sel">4×6 inch ▾</button>
+            </div>
+            <div class="popt-row">
+                <div class="popt-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg><span data-i18n="p_cut">Đường cắt</span></div>
+                <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="print-btns">
+                <button class="pbtn sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-i18n="p_download">Tải ảnh</span></button>
+                <button class="pbtn pri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="p_print">In ngay</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SETTINGS ==================== -->
+    <div class="scr settings-scr" id="s-settings">
+        <div class="topbar">
+            <button class="back" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h2 data-i18n="settings_title">Cài đặt</h2>
+        </div>
+        <div class="s-section">
+            <div class="s-section-title" data-i18n="s_lang_section">Ngôn ngữ</div>
+            <div class="s-group">
+                <div class="s-item" onclick="openLang()">
+                    <div class="s-icon" style="background:#E8F0FE"><svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_language">Ngôn ngữ</h4><p id="current-lang-name">Tiếng Việt</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+            </div>
+        </div>
+        <div class="s-section">
+            <div class="s-section-title" data-i18n="s_photo_section">Ảnh &amp; Chất lượng</div>
+            <div class="s-group">
+                <div class="s-item">
+                    <div class="s-icon" style="background:#E8F0FE"><svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_quality">Chất lượng ảnh</h4><p>300 DPI</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#E6F4EA"><svg viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_format">Định dạng lưu</h4><p>JPEG</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#FFF3E0"><svg viewBox="0 0 24 24" fill="none" stroke="#E65100" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M3 3l18 18"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_watermark">Watermark</h4><p data-i18n="s_watermark_off">Tắt</p></div>
+                    <div class="toggle" onclick="this.classList.toggle('on')"></div>
+                </div>
+            </div>
+        </div>
+        <div class="s-section">
+            <div class="s-section-title" data-i18n="s_ai_section">AI &amp; Tự động</div>
+            <div class="s-group">
+                <div class="s-item">
+                    <div class="s-icon" style="background:#F3E8FD"><svg viewBox="0 0 24 24" fill="none" stroke="#7B1FA2" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_face_ai">Nhận diện khuôn mặt</h4><p data-i18n="s_face_ai_sub">Tự động căn chỉnh vị trí</p></div>
+                    <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#E0F7FA"><svg viewBox="0 0 24 24" fill="none" stroke="#00838F" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/><line x1="18" y1="4" x2="22" y2="8" stroke-dasharray="2 2"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_auto_bg">Tự động xóa phông</h4><p data-i18n="s_auto_bg_sub">Xóa nền khi chụp</p></div>
+                    <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#FCE4EC"><svg viewBox="0 0 24 24" fill="none" stroke="#C2185B" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_beauty">Tự động làm đẹp</h4><p data-i18n="s_beauty_mode">Tự nhiên</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+            </div>
+        </div>
+        <div class="s-section">
+            <div class="s-section-title" data-i18n="s_print_section">In ảnh</div>
+            <div class="s-group">
+                <div class="s-item">
+                    <div class="s-icon" style="background:#E3F2FD"><svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_paper_default">Khổ giấy mặc định</h4><p>4×6 inch</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#EDE7F6"><svg viewBox="0 0 24 24" fill="none" stroke="#5E35B1" stroke-width="2" stroke-linecap="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_cut_default">Đường cắt mặc định</h4><p data-i18n="s_cut_on">Bật</p></div>
+                    <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                </div>
+            </div>
+        </div>
+        <div class="s-section">
+            <div class="s-section-title" data-i18n="s_other">Khác</div>
+            <div class="s-group">
+                <div class="s-item">
+                    <div class="s-icon" style="background:#E8EAF6"><svg viewBox="0 0 24 24" fill="none" stroke="#3949AB" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_privacy">Quyền riêng tư</h4><p data-i18n="s_privacy_sub">Xử lý ngoại tuyến</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#FFF3E0"><svg viewBox="0 0 24 24" fill="none" stroke="#E65100" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_help">Trợ giúp</h4><p>FAQ</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#FBE9E7"><svg viewBox="0 0 24 24" fill="none" stroke="#D84315" stroke-width="2"><path d="M12 20V10M6 20V4M18 20v-4"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_rate">Đánh giá ứng dụng</h4><p>★★★★★</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="s-item">
+                    <div class="s-icon" style="background:#E8F5E9"><svg viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+                    <div class="s-info"><h4 data-i18n="s_version">Phiên bản</h4><p>2.5.0</p></div>
+                    <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+            </div>
+        </div>
+        <div style="height:40px"></div>
+    </div>
+
+    <!-- ==================== LANGUAGE MODAL ==================== -->
+    <div class="lang-modal" id="lang-modal" onclick="closeLang(event)">
+        <div class="lang-sheet" onclick="event.stopPropagation()">
+            <div class="lang-sheet-handle"></div>
+            <h3 data-i18n="choose_lang">Chọn ngôn ngữ</h3>
+            <div class="lang-option active" onclick="setLang('vi')">
+                <div class="lang-flag"><svg viewBox="0 0 36 36" width="28" height="28"><rect width="36" height="36" rx="6" fill="#DA251D"/><polygon points="18,8 20.5,14.5 27.5,14.5 21.5,18.5 23.5,25 18,21 12.5,25 14.5,18.5 8.5,14.5 15.5,14.5" fill="#FFCD00"/></svg></div>
+                <div class="lang-option-info"><h4>Tiếng Việt</h4><p>Vietnamese</p></div>
+                <div class="lang-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="lang-option" onclick="setLang('en')">
+                <div class="lang-flag"><svg viewBox="0 0 36 36" width="28" height="28"><rect width="36" height="36" rx="6" fill="#002868"/><rect y="4" width="36" height="3" fill="white"/><rect y="10" width="36" height="3" fill="#BF0A30"/><rect y="16" width="36" height="3" fill="white"/><rect y="22" width="36" height="3" fill="#BF0A30"/><rect y="28" width="36" height="3" fill="white"/><rect width="16" height="19" fill="#002868"/></svg></div>
+                <div class="lang-option-info"><h4>English</h4><p>Tiếng Anh</p></div>
+                <div class="lang-check" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="lang-option" onclick="setLang('ja')">
+                <div class="lang-flag"><svg viewBox="0 0 36 36" width="28" height="28"><rect width="36" height="36" rx="6" fill="white"/><circle cx="18" cy="18" r="8" fill="#BC002D"/></svg></div>
+                <div class="lang-option-info"><h4>日本語</h4><p>Tiếng Nhật</p></div>
+                <div class="lang-check" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="lang-option" onclick="setLang('zh')">
+                <div class="lang-flag"><svg viewBox="0 0 36 36" width="28" height="28"><rect width="36" height="36" rx="6" fill="#DE2910"/><polygon points="8,6 9.5,10.5 14,10.5 10.2,13 11.7,17.5 8,14.8 4.3,17.5 5.8,13 2,10.5 6.5,10.5" fill="#FFDE00"/></svg></div>
+                <div class="lang-option-info"><h4>中文</h4><p>Tiếng Trung</p></div>
+                <div class="lang-check" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- phone -->
+
+<script>
+// ===== NAVIGATION =====
+function go(id) {
+    document.querySelectorAll('.scr').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-' + id).classList.add('active');
+    document.getElementById('s-' + id).scrollTop = 0;
+    document.querySelectorAll('.mockup-nav button').forEach(b => {
+        b.classList.remove('active');
+        const map = {'Splash':'splash','Home':'home','Kích thước':'sizes','Camera':'camera','Sửa ảnh':'edit','In ảnh':'print','Cài đặt':'settings'};
+        if (map[b.textContent] === id) b.classList.add('active');
+    });
+}
+
+// Auto splash -> home after 2s
+setTimeout(() => { go('home'); }, 2000);
+
+// ===== LANGUAGE =====
+const i18n = {
+    vi: {
+        label:'VI', name:'Tiếng Việt',
+        splash_sub:'Ảnh thẻ chuyên nghiệp',
+        home_sub:'Chụp ảnh thẻ chuyên nghiệp',
+        btn_camera:'Chụp ảnh', btn_camera_sub:'Chụp mới',
+        btn_gallery:'Thư viện', btn_gallery_sub:'Chọn ảnh có sẵn',
+        popular_sizes:'Kích cỡ phổ biến', popular_sizes_sub:'Chọn nhanh và chụp ảnh',
+        sz_passport:'Hộ chiếu, Visa', sz_resume:'Sơ yếu lý lịch',
+        view_all_sizes:'XEM TẤT CẢ KÍCH CỠ',
+        select_size:'Chọn kích thước',
+        search_placeholder:'Tìm kiếm kích thước, quốc gia...',
+        custom_size:'Tùy chỉnh kích thước', custom_size_sub:'Nhập kích thước tùy ý',
+        guide_txt:'Đặt khuôn mặt vào khung hình',
+        tip_light:'Ánh sáng tốt', tip_face:'Giữ thẳng mặt', tip_bg:'Phông nền OK',
+        edit_title:'Chỉnh sửa', save:'Lưu',
+        t_crop:'Cắt', t_bg:'Xóa phông', t_color:'Đổi nền', t_beauty:'Làm đẹp',
+        t_bright:'Độ sáng', t_suit:'Đổi áo', t_rotate:'Xoay', t_print:'In ảnh',
+        print_title:'Bố cục in', p_qty:'Số lượng', p_paper:'Khổ giấy', p_cut:'Đường cắt',
+        p_download:'Tải ảnh', p_print:'In ngay',
+        settings_title:'Cài đặt',
+        s_lang_section:'Ngôn ngữ', s_language:'Ngôn ngữ',
+        s_photo_section:'Ảnh & Chất lượng', s_quality:'Chất lượng ảnh', s_format:'Định dạng lưu',
+        s_watermark:'Watermark', s_watermark_off:'Tắt',
+        s_ai_section:'AI & Tự động', s_face_ai:'Nhận diện khuôn mặt', s_face_ai_sub:'Tự động căn chỉnh vị trí',
+        s_auto_bg:'Tự động xóa phông', s_auto_bg_sub:'Xóa nền khi chụp',
+        s_beauty:'Tự động làm đẹp', s_beauty_mode:'Tự nhiên',
+        s_print_section:'In ảnh', s_paper_default:'Khổ giấy mặc định', s_cut_default:'Đường cắt mặc định', s_cut_on:'Bật',
+        s_other:'Khác', s_privacy:'Quyền riêng tư', s_privacy_sub:'Xử lý ngoại tuyến',
+        s_help:'Trợ giúp', s_rate:'Đánh giá ứng dụng', s_version:'Phiên bản',
+        choose_lang:'Chọn ngôn ngữ'
+    },
+    en: {
+        label:'EN', name:'English',
+        splash_sub:'Professional ID Photos',
+        home_sub:'Professional ID Photo Maker',
+        btn_camera:'Camera', btn_camera_sub:'Take new photo',
+        btn_gallery:'Gallery', btn_gallery_sub:'Choose existing',
+        popular_sizes:'Popular Sizes', popular_sizes_sub:'Quick select and shoot',
+        sz_passport:'Passport, Visa', sz_resume:'Resume / CV',
+        view_all_sizes:'VIEW ALL SIZES',
+        select_size:'Select Size',
+        search_placeholder:'Search size, country...',
+        custom_size:'Custom Size', custom_size_sub:'Enter custom dimensions',
+        guide_txt:'Position your face in the frame',
+        tip_light:'Good lighting', tip_face:'Keep face straight', tip_bg:'Background OK',
+        edit_title:'Edit Photo', save:'Save',
+        t_crop:'Crop', t_bg:'Remove BG', t_color:'Background', t_beauty:'Beauty',
+        t_bright:'Brightness', t_suit:'Outfit', t_rotate:'Rotate', t_print:'Print',
+        print_title:'Print Layout', p_qty:'Quantity', p_paper:'Paper Size', p_cut:'Cut Lines',
+        p_download:'Download', p_print:'Print Now',
+        settings_title:'Settings',
+        s_lang_section:'Language', s_language:'Language',
+        s_photo_section:'Photo & Quality', s_quality:'Photo Quality', s_format:'Save Format',
+        s_watermark:'Watermark', s_watermark_off:'Off',
+        s_ai_section:'AI & Auto', s_face_ai:'Face Detection', s_face_ai_sub:'Auto-align position',
+        s_auto_bg:'Auto Remove BG', s_auto_bg_sub:'Remove background on capture',
+        s_beauty:'Auto Beauty', s_beauty_mode:'Natural',
+        s_print_section:'Printing', s_paper_default:'Default Paper Size', s_cut_default:'Default Cut Lines', s_cut_on:'On',
+        s_other:'Other', s_privacy:'Privacy', s_privacy_sub:'Offline processing',
+        s_help:'Help & Support', s_rate:'Rate this app', s_version:'Version',
+        choose_lang:'Choose Language'
+    },
+    ja: {
+        label:'JA', name:'日本語',
+        splash_sub:'プロの証明写真',
+        home_sub:'プロの証明写真アプリ',
+        btn_camera:'撮影', btn_camera_sub:'新しく撮る',
+        btn_gallery:'ギャラリー', btn_gallery_sub:'既存の写真を選択',
+        popular_sizes:'よく使うサイズ', popular_sizes_sub:'すぐに選んで撮影',
+        sz_passport:'パスポート・ビザ', sz_resume:'履歴書',
+        view_all_sizes:'すべてのサイズを見る',
+        select_size:'サイズを選択',
+        search_placeholder:'サイズ、国名を検索...',
+        custom_size:'カスタムサイズ', custom_size_sub:'任意のサイズを入力',
+        guide_txt:'顔を枠内に合わせてください',
+        tip_light:'照明OK', tip_face:'正面を向く', tip_bg:'背景OK',
+        edit_title:'写真を編集', save:'保存',
+        t_crop:'切取', t_bg:'背景除去', t_color:'背景色', t_beauty:'美肌',
+        t_bright:'明るさ', t_suit:'衣装', t_rotate:'回転', t_print:'印刷',
+        print_title:'印刷レイアウト', p_qty:'枚数', p_paper:'用紙サイズ', p_cut:'切取線',
+        p_download:'ダウンロード', p_print:'印刷する',
+        settings_title:'設定',
+        s_lang_section:'言語', s_language:'言語',
+        s_photo_section:'写真と品質', s_quality:'写真品質', s_format:'保存形式',
+        s_watermark:'ウォーターマーク', s_watermark_off:'オフ',
+        s_ai_section:'AI & 自動', s_face_ai:'顔認識', s_face_ai_sub:'自動位置調整',
+        s_auto_bg:'自動背景除去', s_auto_bg_sub:'撮影時に背景を除去',
+        s_beauty:'自動美肌', s_beauty_mode:'ナチュラル',
+        s_print_section:'印刷', s_paper_default:'デフォルト用紙サイズ', s_cut_default:'デフォルト切取線', s_cut_on:'オン',
+        s_other:'その他', s_privacy:'プライバシー', s_privacy_sub:'オフライン処理',
+        s_help:'ヘルプ', s_rate:'アプリを評価', s_version:'バージョン',
+        choose_lang:'言語を選択'
+    },
+    zh: {
+        label:'ZH', name:'中文',
+        splash_sub:'专业证件照',
+        home_sub:'专业证件照制作',
+        btn_camera:'拍照', btn_camera_sub:'拍摄新照片',
+        btn_gallery:'相册', btn_gallery_sub:'选择已有照片',
+        popular_sizes:'常用尺寸', popular_sizes_sub:'快速选择并拍摄',
+        sz_passport:'护照、签证', sz_resume:'简历',
+        view_all_sizes:'查看所有尺寸',
+        select_size:'选择尺寸',
+        search_placeholder:'搜索尺寸、国家...',
+        custom_size:'自定义尺寸', custom_size_sub:'输入自定义尺寸',
+        guide_txt:'将面部对准框内',
+        tip_light:'光线良好', tip_face:'保持正面', tip_bg:'背景OK',
+        edit_title:'编辑照片', save:'保存',
+        t_crop:'裁剪', t_bg:'去背景', t_color:'换背景', t_beauty:'美颜',
+        t_bright:'亮度', t_suit:'换装', t_rotate:'旋转', t_print:'打印',
+        print_title:'打印布局', p_qty:'数量', p_paper:'纸张大小', p_cut:'裁切线',
+        p_download:'下载', p_print:'立即打印',
+        settings_title:'设置',
+        s_lang_section:'语言', s_language:'语言',
+        s_photo_section:'照片与质量', s_quality:'照片质量', s_format:'保存格式',
+        s_watermark:'水印', s_watermark_off:'关闭',
+        s_ai_section:'AI与自动', s_face_ai:'人脸识别', s_face_ai_sub:'自动调整位置',
+        s_auto_bg:'自动去背景', s_auto_bg_sub:'拍摄时去除背景',
+        s_beauty:'自动美颜', s_beauty_mode:'自然',
+        s_print_section:'打印', s_paper_default:'默认纸张大小', s_cut_default:'默认裁切线', s_cut_on:'开启',
+        s_other:'其他', s_privacy:'隐私', s_privacy_sub:'离线处理',
+        s_help:'帮助', s_rate:'给应用评分', s_version:'版本',
+        choose_lang:'选择语言'
+    }
+};
+
+let currentLang = 'vi';
+
+function setLang(lang) {
+    currentLang = lang;
+    const t = i18n[lang];
+    document.getElementById('lang-label').textContent = t.label;
+    document.getElementById('current-lang-name').textContent = t.name;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) el.textContent = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (t[key]) el.placeholder = t[key];
+    });
+    document.querySelectorAll('.lang-option').forEach(opt => {
+        opt.classList.remove('active');
+        opt.querySelector('.lang-check').style.visibility = 'hidden';
+    });
+    const idx = {vi:0,en:1,ja:2,zh:3}[lang];
+    const opts = document.querySelectorAll('.lang-option');
+    if (opts[idx]) {
+        opts[idx].classList.add('active');
+        opts[idx].querySelector('.lang-check').style.visibility = 'visible';
+    }
+    closeLang();
+}
+
+function openLang() { document.getElementById('lang-modal').classList.add('show'); }
+function closeLang(e) {
+    if (!e || e.target === document.getElementById('lang-modal'))
+        document.getElementById('lang-modal').classList.remove('show');
+}
+
+// ===== TABS =====
+document.querySelectorAll('#country-tabs .tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('#country-tabs .tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+// ===== BG PICKER =====
+function pickBg(el, bg) {
+    document.querySelectorAll('.bg-dot').forEach(d => d.classList.remove('sel'));
+    el.classList.add('sel');
+    const frame = document.querySelector('.edit-frame');
+    frame.style.background = bg;
+}
+</script>
+</body>
+</html>

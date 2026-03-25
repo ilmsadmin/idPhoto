@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.IDPhoto" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Splash Screen API -->
+        <item name="android:windowSplashScreenBackground">#FF1565C0</item>
+    </style>
+</resources>

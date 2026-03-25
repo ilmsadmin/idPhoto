@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#0D47A1"/>
+    </linearGradient>
+    <clipPath id="card">
+      <rect x="56" y="56" width="400" height="400" rx="56" ry="56"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background card -->
+  <rect x="56" y="56" width="400" height="400" rx="56" ry="56" fill="url(#bg)"/>
+
+  <!-- Content clipped to card -->
+  <g clip-path="url(#card)">
+
+    <!-- Stylized person — head -->
+    <circle cx="256" cy="210" r="50" fill="#ffffff"/>
+
+    <!-- Stylized person — shoulders arc only -->
+    <path d="M160,380 Q160,300 256,300 Q352,300 352,380" fill="#ffffff"/>
+
+    <!-- Crop marks — top-left -->
+    <line x1="96" y1="120" x2="96" y2="88" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="96" y1="88" x2="128" y2="88" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Crop marks — top-right -->
+    <line x1="416" y1="120" x2="416" y2="88" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="416" y1="88" x2="384" y2="88" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Crop marks — bottom-left -->
+    <line x1="96" y1="392" x2="96" y2="424" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="96" y1="424" x2="128" y2="424" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Crop marks — bottom-right -->
+    <line x1="416" y1="392" x2="416" y2="424" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="416" y1="424" x2="384" y2="424" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+
+  </g>
+</svg>
