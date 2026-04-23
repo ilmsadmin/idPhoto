@@ -22,8 +22,25 @@ import androidx.compose.ui.unit.sp
 import com.idphoto.app.ui.AppLanguage
 import com.idphoto.app.ui.LocalLanguage
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.components.SurfaceIconButton
 import com.idphoto.app.ui.theme.LocalAppColors
 import com.idphoto.app.ui.theme.ThemeMode
+
+/**
+ * Get app version name from BuildConfig / PackageManager.
+ */
+@Composable
+private fun getAppVersionName(): String {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: "1.0.0"
+        } catch (_: Exception) {
+            "1.0.0"
+        }
+    }
+}
 
 /**
  * Settings Screen — matching mockup.
@@ -43,6 +60,8 @@ fun SettingsScreen(
     onPhotoDpiChange: (Int) -> Unit,
     onOutputFormatChange: (String) -> Unit,
     onWatermarkToggle: (Boolean) -> Unit,
+    onPrivacyClick: () -> Unit = {},
+    onRateClick: () -> Unit = {},
 ) {
     val strings = LocalStrings.current
     val language = LocalLanguage.current
@@ -60,36 +79,28 @@ fun SettingsScreen(
     ) {
         // ── Top Bar ──
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth(),
             color = colors.surface,
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 52.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+                    .padding(top = 8.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
+                SurfaceIconButton(
+                    icon = Icons.Default.ArrowBackIosNew,
+                    contentDescription = strings.back,
                     onClick = onBack,
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.background,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.ArrowBackIosNew,
-                            contentDescription = strings.back,
-                            modifier = Modifier.size(22.dp),
-                            tint = colors.textPrimary,
-                        )
-                    }
-                }
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     strings.settingsTitle,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary,
+                    color = colors.onSurface,
+                    letterSpacing = (-0.3).sp,
                 )
             }
         }
@@ -212,15 +223,7 @@ fun SettingsScreen(
                         iconTint = Color(0xFF3949AB),
                         title = strings.sPrivacy,
                         subtitle = strings.sPrivacySub,
-                        trailing = { SettingsArrow() },
-                    )
-                    HorizontalDivider(color = colors.divider, modifier = Modifier.padding(start = 68.dp))
-                    SettingsItem(
-                        icon = Icons.AutoMirrored.Filled.Help,
-                        iconBg = colors.iconBgOrange,
-                        iconTint = Color(0xFFE65100),
-                        title = strings.sHelp,
-                        subtitle = "FAQ",
+                        onClick = onPrivacyClick,
                         trailing = { SettingsArrow() },
                     )
                     HorizontalDivider(color = colors.divider, modifier = Modifier.padding(start = 68.dp))
@@ -229,7 +232,8 @@ fun SettingsScreen(
                         iconBg = colors.iconBgOrange,
                         iconTint = Color(0xFFD84315),
                         title = strings.sRate,
-                        subtitle = "★★★★★",
+                        subtitle = strings.fiveStars,
+                        onClick = onRateClick,
                         trailing = { SettingsArrow() },
                     )
                     HorizontalDivider(color = colors.divider, modifier = Modifier.padding(start = 68.dp))
@@ -238,8 +242,7 @@ fun SettingsScreen(
                         iconBg = colors.iconBgGreen,
                         iconTint = colors.success,
                         title = strings.sVersion,
-                        subtitle = "1.0.0",
-                        trailing = { SettingsArrow() },
+                        subtitle = getAppVersionName(),
                     )
                 }
             }
@@ -395,12 +398,12 @@ private fun DpiPickerDialog(
                 dpiOptions.forEach { dpi ->
                     val isSelected = dpi == currentDpi
                     val description = when (dpi) {
-                        72 -> "Web / Screen"
-                        150 -> "Draft"
-                        200 -> "Standard"
-                        300 -> "High Quality ★"
-                        450 -> "Professional"
-                        600 -> "Ultra HD"
+                        72 -> strings.dpiWebScreen
+                        150 -> strings.dpiDraft
+                        200 -> strings.dpiStandard
+                        300 -> strings.dpiHighQuality
+                        450 -> strings.dpiProfessional
+                        600 -> strings.dpiUltraHd
                         else -> ""
                     }
                     Surface(
@@ -465,9 +468,9 @@ private fun FormatPickerDialog(
     data class FormatOption(val name: String, val description: String)
 
     val formatOptions = listOf(
-        FormatOption("JPEG", "Smaller file, good quality"),
-        FormatOption("PNG", "Lossless, transparent BG"),
-        FormatOption("WEBP", "Modern, small & high quality"),
+        FormatOption(strings.formatJpeg, strings.formatJpegDesc),
+        FormatOption(strings.formatPng, strings.formatPngDesc),
+        FormatOption(strings.formatWebp, strings.formatWebpDesc),
     )
 
     AlertDialog(

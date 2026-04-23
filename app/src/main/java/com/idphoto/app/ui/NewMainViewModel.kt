@@ -30,7 +30,10 @@ import kotlinx.coroutines.withContext
 data class AppUiState(
     // Photos
     val originalBitmap: Bitmap? = null,
-    val processedBitmap: Bitmap? = null,      // After pipeline (segmented)
+    val rawSegmentedBitmap: Bitmap? = null,   // Full-frame segmented (before auto-crop)
+    val faceAlignment: FaceMeshProcessor.FaceAlignmentResult? = null,  // For re-cropping on size change
+    val processedBitmap: Bitmap? = null,      // After pipeline (segmented + auto-cropped to size)
+    val foregroundBitmap: Bitmap? = null,     // processedBitmap + brightness + outfit (alpha preserved, no bg composite)
     val compositeBitmap: Bitmap? = null,      // After bg + outfit
     val croppedBitmap: Bitmap? = null,        // After size crop
     val printLayoutBitmap: Bitmap? = null,
@@ -40,6 +43,7 @@ data class AppUiState(
     val pipelineMessage: String = "",
     val pipelineError: String? = null,
     val isProcessing: Boolean = false,
+    val pipelineProgress: Float = 0f,    // 0f..1f — thanh % tiến độ
 
     // Selected size
     val selectedSizeIndex: Int = 1, // Default 3x4
@@ -74,6 +78,7 @@ data class AppUiState(
     val saveSuccess: Boolean = false,
     val savedUri: Uri? = null,
     val pipelineRunId: Int = 0,          // Incremented each pipeline run
+    val isSaving: Boolean = false,       // True during save operation
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -84,6 +89,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val pipeline = IDPhotoPipeline(application)
     private val modNetProcessor = MODNetProcessor(application)
     private val settingsStore = SettingsDataStore(application)
+    private var pipelineJob: Job? = null
 
     init {
         _uiState.value = _uiState.value.copy(
@@ -142,6 +148,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             selectedSizeIndex = index,
             selectedSize = size,
         )
+        reCropForSelectedSize()
     }
 
     fun onSizeSelected(size: PhotoSize) {
@@ -150,6 +157,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             selectedSizeIndex = index,
             selectedSize = size,
         )
+        reCropForSelectedSize()
+    }
+
+    /**
+     * Re-crop processedBitmap từ rawSegmentedBitmap theo size hiện tại + vị trí face.
+     * Gọi khi user đổi size sau khi pipeline đã chạy xong.
+     */
+    private fun reCropForSelectedSize() {
+        val raw = _uiState.value.rawSegmentedBitmap ?: return
+        val face = _uiState.value.faceAlignment ?: return
+        val size = _uiState.value.selectedSize
+        viewModelScope.launch {
+            val autoCropped = withContext(Dispatchers.Default) {
+                try {
+                    FaceMeshProcessor(getApplication())
+                        .cropForIdPhotoPreserveResolution(raw, face, size)
+                } catch (e: Exception) {
+                    raw
+                }
+            }
+            _uiState.value = _uiState.value.copy(processedBitmap = autoCropped)
+            rebuildComposite()
+        }
     }
 
     // ─── Photo Input ───────────────────────────────
@@ -168,22 +198,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (bitmap != null) {
                     startPipeline(bitmap)
                 } else {
-                    _uiState.value = _uiState.value.copy(errorMessage = "Cannot read image")
+                    val strings = getStrings(_uiState.value.language)
+                    _uiState.value = _uiState.value.copy(errorMessage = strings.errorCannotReadImage)
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(errorMessage = "Error: ${e.message}")
+                val strings = getStrings(_uiState.value.language)
+                _uiState.value = _uiState.value.copy(errorMessage = "${strings.errorPrefix} ${e.message}")
             }
         }
     }
 
     // ─── Pipeline ──────────────────────────────────
 
+    /** Cancel a running pipeline (e.g. user pressed back from Processing). */
+    fun cancelPipeline() {
+        pipelineJob?.cancel()
+        pipelineJob = null
+        _uiState.value = _uiState.value.copy(
+            isProcessing = false,
+            pipelineError = null,
+            pipelineMessage = "",
+        )
+    }
+
     private fun startPipeline(bitmap: Bitmap) {
         val strings = getStrings(_uiState.value.language)
 
         _uiState.value = _uiState.value.copy(
             originalBitmap = bitmap,
+            rawSegmentedBitmap = null,
+            faceAlignment = null,
             processedBitmap = null,
+            foregroundBitmap = null,
             compositeBitmap = null,
             croppedBitmap = null,
             printLayoutBitmap = null,
@@ -193,6 +239,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             isProcessing = true,
             pipelineError = null,
             pipelineMessage = strings.processing,
+            pipelineProgress = 0f,
             pipelineRunId = _uiState.value.pipelineRunId + 1,
             pipelineSteps = listOf(
                 PipelineStepUi(strings.pipelineFaceMesh, StepStatus.PENDING),
@@ -203,11 +250,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             ),
         )
 
-        viewModelScope.launch {
+        pipelineJob?.cancel()
+        pipelineJob = viewModelScope.launch {
             try {
                 pipeline.process(bitmap, object : IDPhotoPipeline.PipelineCallback {
                     override fun onStepStarted(stepName: String, stepIndex: Int, totalSteps: Int) {
-                        updatePipelineStep(stepIndex, StepStatus.RUNNING, stepName)
+                        updatePipelineStep(stepIndex, StepStatus.RUNNING, strings.pipelineStepLabel(stepIndex))
+                    }
+
+                    override fun onProgress(progress: Float) {
+                        // Chỉ tăng — không cho rớt lại để UI mượt
+                        val current = _uiState.value.pipelineProgress
+                        if (progress > current) {
+                            _uiState.value = _uiState.value.copy(pipelineProgress = progress)
+                        }
                     }
 
                     override fun onStepCompleted(stepName: String, stepIndex: Int, status: IDPhotoPipeline.StepStatus) {
@@ -217,7 +273,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             IDPhotoPipeline.StepStatus.FAILED -> StepStatus.ERROR
                             else -> StepStatus.DONE
                         }
-                        updatePipelineStep(stepIndex, uiStatus, stepName)
+                        updatePipelineStep(stepIndex, uiStatus, strings.pipelineStepLabel(stepIndex))
                     }
 
                     override fun onPreviewReady(previewBitmap: Bitmap) {
@@ -229,9 +285,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         // Mark final export step done
                         updatePipelineStep(4, StepStatus.DONE, "")
 
+                        // Auto-crop theo khuôn mặt + tỉ lệ size đã chọn để ảnh
+                        // hiển thị vừa khung thẻ, không bị cách khung nhiều.
+                        val rawSegmented = result.segmentedBitmap ?: result.alignedBitmap
+                        val face = result.faceAlignment
+                        val size = _uiState.value.selectedSize
+                        val autoCropped = if (face != null && face.confidence > 0f) {
+                            try {
+                                FaceMeshProcessor(getApplication())
+                                    .cropForIdPhotoPreserveResolution(rawSegmented, face, size)
+                            } catch (e: Exception) {
+                                rawSegmented
+                            }
+                        } else {
+                            rawSegmented
+                        }
+
                         _uiState.value = _uiState.value.copy(
-                            processedBitmap = result.segmentedBitmap ?: result.alignedBitmap,
+                            rawSegmentedBitmap = rawSegmented,
+                            faceAlignment = face,
+                            processedBitmap = autoCropped,
                             isProcessing = false,
+                            pipelineProgress = 1f,
                         )
 
                         // Build composite
@@ -244,7 +319,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.value = _uiState.value.copy(
                             isProcessing = false,
                             noFaceDetected = isNoFace,
-                            pipelineError = if (isNoFace) strings.noFaceDetected else (error.message ?: "Unknown error"),
+                            pipelineError = if (isNoFace) strings.noFaceDetected else (error.message ?: strings.errorUnknown),
                             errorMessage = if (isNoFace) strings.noFaceMessage else error.message,
                         )
                     }
@@ -256,7 +331,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = _uiState.value.copy(
                     isProcessing = false,
                     noFaceDetected = isNoFace,
-                    pipelineError = if (isNoFace) strings.noFaceDetected else (e.message ?: "Unknown error"),
+                    pipelineError = if (isNoFace) strings.noFaceDetected else (e.message ?: strings.errorUnknown),
                     errorMessage = if (isNoFace) strings.noFaceMessage else e.message,
                 )
             }
@@ -348,23 +423,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.value = _uiState.value.copy(processedBitmap = previewBitmap)
                     }
                     override fun onComplete(result: IDPhotoPipeline.PipelineResult) {
+                        val rawSegmented = result.segmentedBitmap ?: result.alignedBitmap
+                        val face = result.faceAlignment
+                        val size = _uiState.value.selectedSize
+                        val autoCropped = if (face != null && face.confidence > 0f) {
+                            try {
+                                FaceMeshProcessor(getApplication())
+                                    .cropForIdPhotoPreserveResolution(rawSegmented, face, size)
+                            } catch (e: Exception) {
+                                rawSegmented
+                            }
+                        } else {
+                            rawSegmented
+                        }
                         _uiState.value = _uiState.value.copy(
-                            processedBitmap = result.segmentedBitmap ?: result.alignedBitmap,
+                            rawSegmentedBitmap = rawSegmented,
+                            faceAlignment = face,
+                            processedBitmap = autoCropped,
                             isProcessing = false,
                         )
                         updateComposite()
                     }
                     override fun onError(error: Exception) {
+                        val strings = getStrings(_uiState.value.language)
                         _uiState.value = _uiState.value.copy(
                             isProcessing = false,
-                            errorMessage = "Lỗi xóa phông: ${error.message}",
+                            errorMessage = "${strings.segmentationError}: ${error.message}",
                         )
                     }
                 })
             } catch (e: Exception) {
+                val strings = getStrings(_uiState.value.language)
                 _uiState.value = _uiState.value.copy(
                     isProcessing = false,
-                    errorMessage = "Lỗi xóa phông: ${e.message}",
+                    errorMessage = "${strings.segmentationError}: ${e.message}",
                 )
             }
         }
@@ -410,11 +502,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Step 2: Composite on background
+        // Step 1.5: Apply outfit overlay to FOREGROUND (so it moves with the person during pan/zoom)
+        val outfitIndex = _uiState.value.selectedOutfitIndex
+        if (outfitIndex > 0 && outfitIndex < OutfitOverlay.outfitOptions.size) {
+            val outfit = OutfitOverlay.outfitOptions[outfitIndex]
+            foreground = withContext(Dispatchers.Default) {
+                OutfitOverlay.applyOutfit(foreground, null, outfit)
+            }
+        }
+
+        // Expose foreground (with alpha) so EditScreen can pan/zoom it over a static bg frame
+        _uiState.value = _uiState.value.copy(foregroundBitmap = foreground)
+
+        // Step 2: Composite on background (used for save/print — NOT for EditScreen preview)
         val bgIndex = _uiState.value.selectedBgIndex
         val bgOption = ImageUtils.backgroundOptions.getOrNull(bgIndex)
 
-        var composite = withContext(Dispatchers.Default) {
+        val composite = withContext(Dispatchers.Default) {
             if (bgOption != null && bgOption.gradientColors != null) {
                 ImageUtils.compositeOnGradientBackground(foreground, bgOption)
             } else {
@@ -425,15 +529,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     (bgColor.blue * 255).toInt()
                 )
                 ImageUtils.compositeOnBackground(foreground, androidColor)
-            }
-        }
-
-        // Step 3: Apply outfit overlay
-        val outfitIndex = _uiState.value.selectedOutfitIndex
-        if (outfitIndex > 0 && outfitIndex < OutfitOverlay.outfitOptions.size) {
-            val outfit = OutfitOverlay.outfitOptions[outfitIndex]
-            composite = withContext(Dispatchers.Default) {
-                OutfitOverlay.applyOutfit(composite, null, outfit)
             }
         }
 
@@ -481,7 +576,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val matrix = android.graphics.Matrix().apply { postRotate(90f) }
                 Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
             }
-            _uiState.value = _uiState.value.copy(processedBitmap = rotated)
+            // Xoay cả raw bitmap; invalidate faceAlignment vì tọa độ mặt không còn đúng
+            val rotatedRaw = _uiState.value.rawSegmentedBitmap?.let { raw ->
+                withContext(Dispatchers.Default) {
+                    val m = android.graphics.Matrix().apply { postRotate(90f) }
+                    Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, m, true)
+                }
+            }
+            _uiState.value = _uiState.value.copy(
+                processedBitmap = rotated,
+                rawSegmentedBitmap = rotatedRaw,
+                faceAlignment = null, // Disable re-crop on size change after rotation
+            )
             updateComposite()
         }
     }
@@ -562,6 +668,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         saveOptions: com.idphoto.app.ui.screens.SaveOptions? = null,
     ) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true)
             try {
                 // Dùng save options hoặc default
                 val targetSize = _uiState.value.selectedSize
@@ -702,9 +809,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                _uiState.value = _uiState.value.copy(savedUri = Uri.EMPTY, saveSuccess = true)
+                _uiState.value = _uiState.value.copy(savedUri = Uri.EMPTY, saveSuccess = true, isSaving = false)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(errorMessage = "Save error: ${e.message}")
+                val strings = getStrings(_uiState.value.language)
+                _uiState.value = _uiState.value.copy(errorMessage = "${strings.errorSave} ${e.message}", isSaving = false)
             }
         }
     }
@@ -726,7 +834,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                 _uiState.value = _uiState.value.copy(savedUri = Uri.EMPTY, saveSuccess = true)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(errorMessage = "Save error: ${e.message}")
+                val strings = getStrings(_uiState.value.language)
+                _uiState.value = _uiState.value.copy(errorMessage = "${strings.errorSave} ${e.message}")
             }
         }
     }
@@ -740,7 +849,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _uiState.value = _uiState.value.copy(savedUri = uri, saveSuccess = true)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(errorMessage = "Error: ${e.message}")
+                val strings = getStrings(_uiState.value.language)
+                _uiState.value = _uiState.value.copy(errorMessage = "${strings.errorPrefix} ${e.message}")
             }
         }
     }
@@ -777,6 +887,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun reset() {
+        pipelineJob?.cancel()
+        pipelineJob = null
         _uiState.value = AppUiState(
             modnetAvailable = modNetProcessor.isModelAvailable(),
             language = _uiState.value.language,

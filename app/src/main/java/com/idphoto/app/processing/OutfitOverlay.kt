@@ -33,6 +33,8 @@ object OutfitOverlay {
         AO_DAI,          // Áo dài Việt Nam
     }
 
+    // Note: These outfit names are Vietnamese by default. They should be localized based on app language.
+    // For now, using Vietnamese as the default language.
     val outfitOptions = listOf(
         OutfitOption("Không", Color.TRANSPARENT, Color.TRANSPARENT, OutfitType.NONE),
         OutfitOption("Vest đen", Color.parseColor("#2C2C2C"), Color.parseColor("#8B0000"), OutfitType.SUIT_TIE),

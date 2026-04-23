@@ -85,7 +85,10 @@ fun NewMainScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+            ) {
                 NavHost(
                     navController = navController,
                     startDestination = NavRoutes.HOME,
@@ -219,8 +222,10 @@ fun NewMainScreen(
                             steps = uiState.pipelineSteps,
                             currentMessage = uiState.pipelineMessage,
                             errorMessage = uiState.pipelineError,
+                            progress = uiState.pipelineProgress,
                             onRetry = { viewModel.retryPipeline() },
                             onCancel = {
+                                viewModel.cancelPipeline()
                                 navController.popBackStack(NavRoutes.HOME, false)
                             },
                         )
@@ -229,7 +234,7 @@ fun NewMainScreen(
                     // ── Edit ──
                     composable(NavRoutes.EDIT) {
                         EditScreen(
-                            photo = uiState.compositeBitmap ?: uiState.processedBitmap,
+                            photo = uiState.foregroundBitmap ?: uiState.processedBitmap,
                             selectedBgColor = uiState.selectedBgColor,
                             selectedBgIndex = uiState.selectedBgIndex,
                             activeEditTool = uiState.activeEditTool,
@@ -237,6 +242,7 @@ fun NewMainScreen(
                             pipelineRunId = uiState.pipelineRunId,
                             selectedSize = uiState.selectedSize,
                             photoDpi = uiState.photoDpi,
+                            isSaving = uiState.isSaving,
                             onBack = {
                                 viewModel.closeToolPanel()
                                 viewModel.reset()
@@ -277,13 +283,7 @@ fun NewMainScreen(
                             cutLinesEnabled = uiState.cutLinesEnabled,
                             onBack = { navController.popBackStack() },
                             onQuantityChange = { viewModel.onPrintQuantityChange(it) },
-                            onPaperSizeClick = {
-                                // Cycle through paper sizes
-                                val sizes = listOf("4×6 inch", "5×7 inch", "A4", "A5")
-                                val current = sizes.indexOf(uiState.paperSize)
-                                val next = (current + 1) % sizes.size
-                                viewModel.onPaperSizeChange(sizes[next])
-                            },
+                            onPaperSizeChange = { viewModel.onPaperSizeChange(it) },
                             onCutLinesToggle = { viewModel.onCutLinesToggle(it) },
                             onDownload = { viewModel.downloadPrintLayout() },
                             onPrint = { viewModel.savePhoto() },
@@ -292,6 +292,7 @@ fun NewMainScreen(
 
                     // ── Settings ──
                     composable(NavRoutes.SETTINGS) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
                         SettingsScreen(
                             themeMode = uiState.themeMode,
                             photoDpi = uiState.photoDpi,
@@ -303,6 +304,14 @@ fun NewMainScreen(
                             onPhotoDpiChange = { viewModel.onPhotoDpiChange(it) },
                             onOutputFormatChange = { viewModel.onOutputFormatChange(it) },
                             onWatermarkToggle = { viewModel.onWatermarkToggle(it) },
+                            onPrivacyClick = {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://apps.zenix.vn/privacy-policy"))
+                                context.startActivity(intent)
+                            },
+                            onRateClick = {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.idphoto_pro.app"))
+                                context.startActivity(intent)
+                            },
                         )
                     }
                 }

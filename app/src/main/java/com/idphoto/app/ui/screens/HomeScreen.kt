@@ -1,360 +1,593 @@
 package com.idphoto.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idphoto.app.processing.PhotoSize
 import com.idphoto.app.processing.PhotoSizeManager
-import com.idphoto.app.ui.AppLanguage
 import com.idphoto.app.ui.LocalLanguage
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.localizedSizeDescription
+import com.idphoto.app.ui.components.AuroraBackground
+import com.idphoto.app.ui.components.GlassBottomNav
+import com.idphoto.app.ui.components.GlassIconButton
+import com.idphoto.app.ui.components.GlassNavItem
+import com.idphoto.app.ui.components.SectionHeader
+import com.idphoto.app.ui.components.SizeThumb
+import com.idphoto.app.ui.components.TonalChip
+import com.idphoto.app.ui.theme.AppShapes
 import com.idphoto.app.ui.theme.LocalAppColors
 
 /**
- * Home Screen — matching mockup design.
+ * Home Screen — Material 3 Expressive (Redesign 2.0).
  *
- * Blue gradient header with Settings (left) + Language (right) buttons,
- * "ID Photo Pro" title, 2 main action cards (Camera blue + Gallery orange),
- * popular sizes 2×2 grid, "VIEW ALL SIZES" button.
+ * Layout:
+ *   • Aurora hero (top) with brand mark, greeting, gradient hero CTA, feature strip
+ *   • Body (bottom): popular sizes grid, tip card
+ *   • Floating glass bottom nav (Home / Sizes / Settings)
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToCamera: () -> Unit,
+    onNavigateToCamera: () -> Unit,            // kept for backward compat (unused)
     onNavigateToGallery: () -> Unit,
     onNavigateToSizes: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSizeWithIndex: (Int) -> Unit,
     onShowLanguagePicker: () -> Unit,
 ) {
+    @Suppress("UNUSED_VARIABLE") val unused = onNavigateToCamera
     val strings = LocalStrings.current
-    val language = LocalLanguage.current
+    @Suppress("UNUSED_VARIABLE") val lang = LocalLanguage.current
     val colors = LocalAppColors.current
+    val scroll = rememberScrollState()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .verticalScroll(rememberScrollState()),
+            .background(colors.background),
     ) {
-        // ── Top buttons + Title (flat, same bg as screen) ──
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(top = 12.dp, bottom = 24.dp),
+                .fillMaxSize()
+                .verticalScroll(scroll),
         ) {
-            // ── Title + Settings button (same row) ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Spacer to balance the settings button on the right
-                Spacer(modifier = Modifier.size(44.dp))
-                Text(
-                    "ID Photo Pro",
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    color = colors.textPrimary,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.3).sp,
-                )
-                // Settings button
-                Surface(
-                    onClick = onNavigateToSettings,
-                    shape = CircleShape,
-                    color = colors.surface,
-                    modifier = Modifier.size(44.dp),
+            // ── HERO (aurora) ─────────────────────────────────────────
+            AuroraBackground(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 8.dp, bottom = 36.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-            }
-
-            // ── Subtitle (centered) ──
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                strings.homeSub,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = colors.textTertiary,
-                fontSize = 14.sp,
-            )
-        }
-
-        // ── 2 Main Action Cards ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            // Camera button
-            ActionCard(
-                modifier = Modifier.weight(1f),
-                backgroundColor = colors.primary,
-                icon = Icons.Default.CameraAlt,
-                title = strings.btnCamera,
-                subtitle = strings.btnCameraSub,
-                onClick = onNavigateToCamera,
-            )
-
-            // Gallery button
-            ActionCard(
-                modifier = Modifier.weight(1f),
-                backgroundColor = colors.accent,
-                icon = Icons.Default.Image,
-                title = strings.btnGallery,
-                subtitle = strings.btnGallerySub,
-                onClick = onNavigateToGallery,
-            )
-        }
-
-        // ── Popular Sizes Section ──
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
-        ) {
-            Text(
-                strings.popularSizes,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = colors.textPrimary,
-            )
-            Text(
-                strings.popularSizesSub,
-                fontSize = 12.sp,
-                color = colors.textTertiary,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 2x3 Grid of popular sizes
-            val popularSizes = PhotoSizeManager.popularSizes
-            val sizeColors = listOf(
-                Color(0xFFE3F2FD) to Color(0xFF1565C0),  // Blue
-                Color(0xFFFFEBEE) to Color(0xFFC62828),  // Red
-                Color(0xFFF5F5F5) to Color(0xFF616161),  // Gray
-                Color(0xFFE8EAF6) to Color(0xFF283593),  // Indigo
-                Color(0xFFFFF3E0) to Color(0xFFE65100),  // Orange
-                Color(0xFFE8F5E9) to Color(0xFF2E7D32),  // Green
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (row in 0..2) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        for (col in 0..1) {
-                            val idx = row * 2 + col
-                            if (idx < popularSizes.size) {
-                                val size = popularSizes[idx]
-                                val (bgColor, iconColor) = sizeColors[idx]
-                                PopularSizeItem(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(76.dp),
-                                    name = size.name,
-                                    description = size.description,
-                                    bgColor = bgColor,
-                                    iconColor = iconColor,
-                                    onClick = {
-                                        val globalIdx = PhotoSizeManager.standardSizes.indexOf(size)
-                                        onNavigateToSizeWithIndex(globalIdx.coerceAtLeast(0))
-                                    },
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // View All Sizes — styled like a size card
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(76.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = colors.surface,
-                shadowElevation = 1.dp,
-                onClick = onNavigateToSizes,
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.primaryLight),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.GridView,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp),
-                            tint = colors.primary,
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            strings.viewAllSizes,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary,
-                        )
-                        Text(
-                            "${PhotoSizeManager.standardSizes.size}+ ${strings.popularSizesSub.lowercase()}",
-                            fontSize = 11.sp,
-                            color = colors.textTertiary,
-                        )
-                    }
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = colors.textTertiary,
+                    HomeTopBar(
+                        onLanguageClick = onShowLanguagePicker,
+                        onSettingsClick = onNavigateToSettings,
                     )
+                    Spacer(Modifier.height(14.dp))
+                    GreetingRow()
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        buildAnnotatedTitle(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.onSurface,
+                        letterSpacing = (-0.6).sp,
+                        lineHeight = 32.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        strings.homeSub,
+                        fontSize = 13.sp,
+                        color = colors.onSurfaceVariant,
+                        lineHeight = 18.sp,
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    HeroCta(onClick = onNavigateToGallery)
+                    Spacer(Modifier.height(14.dp))
+                    FeatureStrip()
+                }
+            }
+
+            // ── BODY ──────────────────────────────────────────────────
+            Surface(
+                colors = colors,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-20).dp)
+                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                    .background(colors.surface),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 28.dp, bottom = 110.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    PopularSizesSection(
+                        onSizeClick = { idx -> onNavigateToSizeWithIndex(idx) },
+                        onSeeAll = onNavigateToSizes,
+                    )
+                    TipCard()
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
-    }
-}
-
-@Composable
-private fun ActionCard(
-    modifier: Modifier = Modifier,
-    backgroundColor: Color,
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = backgroundColor,
-        shadowElevation = 4.dp,
-        onClick = onClick,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // ── Floating glass bottom nav ─────────────────────────────────
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 10.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                    tint = Color.White,
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                title,
-                color = Color.White,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                subtitle,
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 12.sp,
+            GlassBottomNav(
+                items = listOf(
+                    GlassNavItem(Icons.Filled.Home, strings.navHome, onClick = {}),
+                    GlassNavItem(Icons.Filled.PhotoLibrary, strings.navPhotos, onClick = onNavigateToGallery),
+                    GlassNavItem(Icons.Filled.Straighten, strings.navSizes, onClick = onNavigateToSizes),
+                    GlassNavItem(Icons.Filled.Person, strings.navProfile, onClick = onNavigateToSettings),
+                ),
+                activeIndex = 0,
             )
         }
     }
 }
 
+// ───────────────────────── Sub-composables ─────────────────────────
+
 @Composable
-private fun PopularSizeItem(
-    modifier: Modifier = Modifier,
-    name: String,
-    description: String,
-    bgColor: Color,
-    iconColor: Color,
-    onClick: () -> Unit,
+private fun HomeTopBar(
+    onLanguageClick: () -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = LocalAppColors.current.surface,
-        shadowElevation = 1.dp,
-        onClick = onClick,
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        // Brand mark
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(bgColor),
+                    .size(38.dp)
+                    .shadow(10.dp, RoundedCornerShape(12.dp), clip = false)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.primaryGradient),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                    tint = iconColor,
-                )
+                Icon(Icons.Filled.Badge, null, modifier = Modifier.size(22.dp), tint = Color.White)
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Column {
                 Text(
-                    name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LocalAppColors.current.textPrimary,
+                    strings.brandName,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.onSurface,
+                    letterSpacing = (-0.2).sp,
                 )
                 Text(
-                    description,
-                    fontSize = 11.sp,
-                    color = LocalAppColors.current.textTertiary,
+                    strings.brandTagline,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.onSurfaceVariant,
+                    letterSpacing = 1.0.sp,
+                )
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GlassIconButton(Icons.Filled.Language, onClick = onLanguageClick, contentDescription = strings.contentLanguage)
+            GlassIconButton(Icons.AutoMirrored.Filled.HelpOutline, onClick = {}, contentDescription = strings.contentHelp)
+        }
+    }
+}
+
+@Composable
+private fun GreetingRow() {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            strings.greeting,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.onSurfaceVariant,
+        )
+        Spacer(Modifier.weight(1f))
+        TonalChip(
+            text = strings.onDeviceLabel,
+            icon = Icons.Filled.VerifiedUser,
+            background = if (colors.isDark) Color(0x4700C9A7) else Color(0x2400C9A7),
+            contentColor = if (colors.isDark) Color(0xFF7FF0CE) else Color(0xFF00533B),
+        )
+    }
+}
+
+@Composable
+private fun buildAnnotatedTitle(): androidx.compose.ui.text.AnnotatedString {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    return androidx.compose.ui.text.buildAnnotatedString {
+        append(strings.titlePart1)
+        // Bold gradient highlight via SpanStyle (fallback color since text gradient is non-trivial)
+        withStyle(
+            androidx.compose.ui.text.SpanStyle(
+                color = colors.primary,
+                fontWeight = FontWeight.ExtraBold,
+            )
+        ) {
+            append(strings.titlePart2)
+        }
+        append("\n")
+        append(strings.titlePart3)
+    }
+}
+
+private inline fun androidx.compose.ui.text.AnnotatedString.Builder.withStyle(
+    style: androidx.compose.ui.text.SpanStyle,
+    block: androidx.compose.ui.text.AnnotatedString.Builder.() -> Unit,
+) {
+    val i = pushStyle(style); block(); pop()
+}
+
+@Composable
+private fun HeroCta(onClick: () -> Unit) {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(24.dp, RoundedCornerShape(28.dp), clip = false)
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF2A3CDE),
+                        Color(0xFF5B3DFE),
+                        Color(0xFF9C27FF),
+                    )
+                )
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 22.dp),
+    ) {
+        Column {
+            // tag line
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = 0.18f))
+                    .padding(horizontal = 11.dp, vertical = 5.dp),
+            ) {
+                Text(
+                    strings.aiPoweredTag,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Text(
+                strings.selectFromGallery,
+                color = Color.White,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.4).sp,
+                lineHeight = 26.sp,
+                modifier = Modifier.fillMaxWidth(0.78f),
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                strings.aiProcessingTime,
+                color = Color.White.copy(alpha = 0.88f),
+                fontSize = 12.5.sp,
+                lineHeight = 17.sp,
+                modifier = Modifier.fillMaxWidth(0.72f),
+            )
+            Spacer(Modifier.height(18.dp))
+            // CTA pill — white background w/ small gradient circle icon
+            Row(
+                modifier = Modifier
+                    .shadow(10.dp, RoundedCornerShape(999.dp), clip = false)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White)
+                    .clickable(onClick = onClick)
+                    .padding(start = 6.dp, end = 18.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(colors.primaryGradient),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.PhotoLibrary, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    strings.btnGallery,
+                    color = Color(0xFF2A3CDE),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
                 )
             }
         }
     }
+}
+
+@Composable
+private fun FeatureStrip() {
+    val strings = LocalStrings.current
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FeatureItem(Icons.Filled.AutoAwesome, strings.bgRemovalTitle, strings.bgRemovalTech, modifier = Modifier.weight(1f))
+        FeatureItem(Icons.Filled.FaceRetouchingNatural, strings.faceAlignmentTitle, strings.faceAlignmentTech, modifier = Modifier.weight(1f))
+        FeatureItem(Icons.Filled.Lock, strings.privacyTitle, strings.privacyTech, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun FeatureItem(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier) {
+    val colors = LocalAppColors.current
+    val bg = if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.7f)
+    val border = if (colors.isDark) Color.White.copy(alpha = 0.10f) else Color.White
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(16.dp))
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, null, modifier = Modifier.size(22.dp), tint = colors.primary)
+        Spacer(Modifier.height(4.dp))
+        Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+        Text(subtitle, fontSize = 9.5.sp, color = colors.onSurfaceVariant, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun PopularSizesSection(
+    onSizeClick: (Int) -> Unit,
+    onSeeAll: () -> Unit,
+) {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        SectionHeader(
+            title = strings.popularSizes,
+            actionLabel = strings.viewAllSizes.let { if (it.length > 14) strings.viewAll else it },
+            onActionClick = onSeeAll,
+        )
+
+        // Country mini chips (display-only for now; tapping navigates to full list)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            CountryMiniChip(strings.countryVnFlag, active = true, onClick = onSeeAll)
+            CountryMiniChip(strings.countryUsFlag, active = false, onClick = onSeeAll)
+            CountryMiniChip(strings.countryJpFlag, active = false, onClick = onSeeAll)
+            CountryMiniChip(strings.countryEuFlag, active = false, onClick = onSeeAll)
+            CountryMiniChip(strings.countryKrFlag, active = false, onClick = onSeeAll)
+        }
+
+        // Grid 2×2 of popular sizes
+        val popular = PhotoSizeManager.popularSizes.take(4)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                if (popular.isNotEmpty()) {
+                    SizeCard(
+                        size = popular[0],
+                        featured = true,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSizeClick(globalIndex(popular[0])) },
+                    )
+                }
+                if (popular.size > 1) {
+                    SizeCard(
+                        size = popular[1],
+                        featured = false,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSizeClick(globalIndex(popular[1])) },
+                    )
+                } else Spacer(Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                if (popular.size > 2) {
+                    SizeCard(
+                        size = popular[2],
+                        featured = false,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSizeClick(globalIndex(popular[2])) },
+                    )
+                } else Spacer(Modifier.weight(1f))
+                if (popular.size > 3) {
+                    SizeCard(
+                        size = popular[3],
+                        featured = false,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSizeClick(globalIndex(popular[3])) },
+                    )
+                } else Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+private fun globalIndex(size: PhotoSize): Int =
+    PhotoSizeManager.standardSizes.indexOf(size).coerceAtLeast(0)
+
+@Composable
+private fun CountryMiniChip(text: String, active: Boolean, onClick: () -> Unit) {
+    val colors = LocalAppColors.current
+    val bg = if (active) colors.onSurface else colors.surfaceContainer
+    val fg = if (active) colors.surface else colors.onSurfaceVariant
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+    ) {
+        Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun SizeCard(
+    size: PhotoSize,
+    featured: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    val bg: Modifier = if (featured) {
+        Modifier.background(
+            Brush.linearGradient(
+                listOf(
+                    if (colors.isDark) Color(0x308B6DFF) else Color(0xFFEEEAFF),
+                    if (colors.isDark) Color(0x30FF7A59) else Color(0xFFFFE7D7),
+                )
+            )
+        )
+    } else {
+        Modifier
+            .background(colors.surfaceContainerLowest)
+            .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp))
+    }
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .then(bg)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+            SizeThumb(width = 30.dp, height = 42.dp, accent = colors.primary)
+            Spacer(Modifier.weight(1f))
+            if (featured) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(colors.coralGradient)
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                ) {
+                    Text(strings.hotBadge, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp)
+                }
+            }
+        }
+        Column {
+            Text(
+                size.name,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.onSurface,
+                letterSpacing = (-0.2).sp,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                strings.localizedSizeDescription(size.description),
+                fontSize = 11.sp,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(colors.primary.copy(alpha = 0.10f))
+                .padding(horizontal = 8.dp, vertical = 3.dp),
+        ) {
+            Text(
+                "${size.widthPx} × ${size.heightPx} px",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TipCard() {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    val bg = if (colors.isDark) {
+        Brush.linearGradient(listOf(Color(0x40FF7A59), Color(0x40FF3366)))
+    } else {
+        Brush.linearGradient(listOf(Color(0xFFFFF5E6), Color(0xFFFFE7EF)))
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .border(1.dp, Color(0xFFFF7A59).copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .shadow(12.dp, RoundedCornerShape(14.dp), clip = false)
+                .clip(RoundedCornerShape(14.dp))
+                .background(colors.coralGradient),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Filled.TipsAndUpdates, null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(strings.tipTitle, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = colors.onSurface)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                strings.tipDescription,
+                fontSize = 11.sp,
+                color = colors.onSurfaceVariant,
+                lineHeight = 15.sp,
+            )
+        }
+    }
+}
+
+// Lightweight Surface wrapper to avoid pulling in Material3 Surface (which adds shadows)
+@Composable
+private fun Surface(
+    modifier: Modifier = Modifier,
+    @Suppress("UNUSED_PARAMETER") colors: com.idphoto.app.ui.theme.AppColors,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier = modifier) { content() }
 }

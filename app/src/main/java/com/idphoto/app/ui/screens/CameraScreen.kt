@@ -48,8 +48,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -138,6 +140,7 @@ fun CameraScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val strings = LocalStrings.current
+    val haptic = LocalHapticFeedback.current
 
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_FRONT) }
     val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
@@ -210,7 +213,7 @@ fun CameraScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
-                .statusBarsPadding(),
+                .padding(top = 8.dp),
         ) {
         // ── Top Bar — nằm trên nền đen, dưới status bar ──
         Row(
@@ -263,7 +266,7 @@ fun CameraScreen(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                        contentDescription = "Flash",
+                        contentDescription = strings.accessFlash,
                         tint = if (flashEnabled) Color(0xFFFFB300) else Color.White,
                         modifier = Modifier.size(22.dp),
                     )
@@ -281,44 +284,37 @@ fun CameraScreen(
             contentAlignment = Alignment.Center,
         ) {
             // Camera Preview with ImageAnalysis
+            // Dùng key(lensFacing) để chỉ recreate khi flip camera
+            val previewView = remember { mutableStateOf<PreviewView?>(null) }
+
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    PreviewView(ctx).also { previewView ->
-                        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
-                        bindCameraWithAnalysis(
-                            context = ctx,
-                            previewView = previewView,
-                            lifecycleOwner = lifecycleOwner as androidx.lifecycle.LifecycleOwner,
-                            cameraProviderFuture = cameraProviderFuture,
-                            lensFacing = lensFacing,
-                            flashEnabled = flashEnabled,
-                            imageCapture = imageCapture,
-                            qualityChecker = qualityChecker,
-                            isAnalyzing = isAnalyzing,
-                            onQualityUpdate = { result ->
-                                liveQuality = result
-                            },
-                        )
+                    PreviewView(ctx).also { pv ->
+                        pv.scaleType = PreviewView.ScaleType.FILL_CENTER
+                        previewView.value = pv
                     }
                 },
-                update = { previewView ->
-                    bindCameraWithAnalysis(
-                        context = context,
-                        previewView = previewView,
-                        lifecycleOwner = lifecycleOwner as androidx.lifecycle.LifecycleOwner,
-                        cameraProviderFuture = cameraProviderFuture,
-                        lensFacing = lensFacing,
-                        flashEnabled = flashEnabled,
-                        imageCapture = imageCapture,
-                        qualityChecker = qualityChecker,
-                        isAnalyzing = isAnalyzing,
-                        onQualityUpdate = { result ->
-                            liveQuality = result
-                        },
-                    )
-                },
             )
+
+            // Bind camera riêng qua LaunchedEffect — chỉ rebind khi lensFacing hoặc flashEnabled thay đổi
+            LaunchedEffect(lensFacing, flashEnabled) {
+                val pv = previewView.value ?: return@LaunchedEffect
+                bindCameraWithAnalysis(
+                    context = context,
+                    previewView = pv,
+                    lifecycleOwner = lifecycleOwner as androidx.lifecycle.LifecycleOwner,
+                    cameraProviderFuture = cameraProviderFuture,
+                    lensFacing = lensFacing,
+                    flashEnabled = flashEnabled,
+                    imageCapture = imageCapture,
+                    qualityChecker = qualityChecker,
+                    isAnalyzing = isAnalyzing,
+                    onQualityUpdate = { result ->
+                        liveQuality = result
+                    },
+                )
+            }
 
             // Face/body guide overlay with dynamic color based on detection
             FaceGuideOverlay(
@@ -355,7 +351,7 @@ fun CameraScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        if (liveQuality.faceDetected) "AI Detect" else "Scanning...",
+                        if (liveQuality.faceDetected) strings.cameraAiDetect else strings.cameraScanning,
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -447,6 +443,7 @@ fun CameraScreen(
                 Button(
                     onClick = {
                         if (!isCapturing && !countdownActive) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             if (timerSeconds > 0) {
                                 countdownValue = timerSeconds
                                 countdownActive = true
@@ -511,7 +508,7 @@ fun CameraScreen(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.FlipCameraAndroid,
-                            contentDescription = "Flip",
+                            contentDescription = strings.accessFlipCamera,
                             tint = Color.White,
                             modifier = Modifier.size(24.dp),
                         )
@@ -572,7 +569,10 @@ fun CameraScreen(
                             bitmap = bitmap,
                             index = index + 1,
                             onClick = { onPhotoSelected(bitmap) },
-                            onDelete = { capturedPhotos.removeAt(index) },
+                            onDelete = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                capturedPhotos.removeAt(index)
+                            },
                         )
                     }
                 }
@@ -785,6 +785,7 @@ private fun CapturedPhotoItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     Box(
         modifier = Modifier
             .size(72.dp)
@@ -829,7 +830,7 @@ private fun CapturedPhotoItem(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Delete",
+                    contentDescription = LocalStrings.current.deletePhoto,
                     tint = Color.White,
                     modifier = Modifier.size(12.dp),
                 )
@@ -846,7 +847,7 @@ private fun CapturedPhotoItem(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "Edit",
+                strings.cameraEditHint,
                 color = Color.White,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Medium,

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.components.SurfaceIconButton
 import com.idphoto.app.ui.theme.LocalAppColors
 
 /**
@@ -39,7 +40,7 @@ fun PrintScreen(
     cutLinesEnabled: Boolean,
     onBack: () -> Unit,
     onQuantityChange: (Int) -> Unit,
-    onPaperSizeClick: () -> Unit,
+    onPaperSizeChange: (String) -> Unit,
     onCutLinesToggle: (Boolean) -> Unit,
     onDownload: () -> Unit,
     onPrint: () -> Unit,
@@ -54,36 +55,28 @@ fun PrintScreen(
     ) {
         // ── Top Bar ──
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth(),
             color = colors.surface,
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 52.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+                    .padding(top = 8.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
+                SurfaceIconButton(
+                    icon = Icons.Default.ArrowBackIosNew,
+                    contentDescription = strings.back,
                     onClick = onBack,
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.background,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.ArrowBackIosNew,
-                            contentDescription = strings.back,
-                            modifier = Modifier.size(22.dp),
-                            tint = colors.textPrimary,
-                        )
-                    }
-                }
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     strings.printTitle,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary,
+                    color = colors.onSurface,
+                    letterSpacing = (-0.3).sp,
                 )
             }
         }
@@ -210,23 +203,49 @@ fun PrintScreen(
 
                 HorizontalDivider(color = colors.divider)
 
-                // Paper size
+                // Paper size with dropdown
                 PrintOptionRow(
                     icon = Icons.Default.Description,
                     label = strings.pPaper,
                 ) {
-                    Surface(
-                        onClick = onPaperSizeClick,
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.primaryLight,
-                    ) {
-                        Text(
-                            "$paperSize ▾",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.primary,
-                        )
+                    var expanded by remember { mutableStateOf(false) }
+                    val paperSizes = listOf("4×6 inch", "5×7 inch", "A4", "A5")
+                    Box {
+                        Surface(
+                            onClick = { expanded = true },
+                            shape = RoundedCornerShape(8.dp),
+                            color = colors.primaryLight,
+                        ) {
+                            Text(
+                                "$paperSize ▾",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.primary,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            paperSizes.forEach { size ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            size,
+                                            fontWeight = if (size == paperSize) FontWeight.Bold else FontWeight.Normal,
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        onPaperSizeChange(size)
+                                    },
+                                    leadingIcon = if (size == paperSize) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, tint = colors.primary, modifier = Modifier.size(18.dp)) }
+                                    } else null,
+                                )
+                            }
+                        }
                     }
                 }
 

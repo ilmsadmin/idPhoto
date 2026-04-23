@@ -33,6 +33,8 @@ data class PhotoSize(
  */
 object PhotoSizeManager {
 
+    // Note: These descriptions are Vietnamese by default. They should be localized based on app language.
+    // For now, using Vietnamese as the default language.
     val standardSizes = listOf(
         // Việt Nam
         PhotoSize("2x3 cm", 20f, 30f, "Visa, CMND cũ", 236, 354, "VN"),
@@ -75,6 +77,8 @@ object PhotoSizeManager {
         PhotoSize("3.5x4.5 cm", 35f, 45f, "Australia Passport", 413, 531, "AU"),
     )
 
+    // Note: These country names are Vietnamese by default. They should be localized based on app language.
+    // For now, using Vietnamese as the default language.
     val countries = listOf(
         CountryTab("VN", "Việt Nam"),
         CountryTab("US", "Mỹ / US"),
@@ -134,7 +138,7 @@ object PhotoSizeManager {
         }
 
         val x = (srcW - cropW) / 2
-        val y = (srcH - cropH) / 6 // Offset lên trên 1 chút cho ảnh thẻ (đầu ở trên)
+        val y = (srcH - cropH) / 2 // Center crop
 
         val safeX = x.coerceIn(0, srcW - cropW)
         val safeY = y.coerceIn(0, srcH - cropH)

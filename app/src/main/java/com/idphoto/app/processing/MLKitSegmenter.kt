@@ -7,6 +7,7 @@ import com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions
 import com.google.mlkit.vision.segmentation.Segmentation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.nio.ByteBuffer
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -22,6 +23,12 @@ import kotlin.coroutines.resumeWithException
  */
 class MLKitSegmenter {
 
+    // Background executor cho ML Kit callbacks — tránh block Main thread
+    // (ML Kit mặc định dispatch callback về Main, khiến UI bị đơ)
+    private val callbackExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "MLKitSeg-Callback").apply { priority = Thread.NORM_PRIORITY - 1 }
+    }
+
     private val segmenter by lazy {
         val options = SelfieSegmenterOptions.Builder()
             .setDetectorMode(SelfieSegmenterOptions.SINGLE_IMAGE_MODE)
@@ -34,7 +41,7 @@ class MLKitSegmenter {
         return suspendCancellableCoroutine { cont ->
             val inputImage = InputImage.fromBitmap(bitmap, 0)
             segmenter.process(inputImage)
-                .addOnSuccessListener { segmentationMask ->
+                .addOnSuccessListener(callbackExecutor) { segmentationMask ->
                     try {
                         val mask = segmentationMask.buffer
                         val maskWidth = segmentationMask.width
@@ -46,7 +53,7 @@ class MLKitSegmenter {
                         cont.resumeWithException(e)
                     }
                 }
-                .addOnFailureListener { e ->
+                .addOnFailureListener(callbackExecutor) { e ->
                     cont.resumeWithException(e)
                 }
         }
@@ -87,5 +94,6 @@ class MLKitSegmenter {
 
     fun close() {
         segmenter.close()
+        callbackExecutor.shutdown()
     }
 }

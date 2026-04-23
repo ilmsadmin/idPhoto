@@ -21,8 +21,8 @@ android {
         applicationId = "com.idphoto_pro.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.2"
+        versionCode = 6
+        versionName = "1.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -85,6 +85,9 @@ android {
                 "DebugProbesKt.bin",
                 "kotlin-tooling-metadata.json",
             )
+        }
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 }

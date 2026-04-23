@@ -23,15 +23,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +44,10 @@ import com.idphoto.app.processing.ImageUtils
 import com.idphoto.app.processing.PhotoSize
 import com.idphoto.app.processing.PhotoSizeManager
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.localizedBgName
+import com.idphoto.app.ui.localizedSizeDescription
+import com.idphoto.app.ui.components.GradientButton
+import com.idphoto.app.ui.components.SurfaceIconButton
 import com.idphoto.app.ui.theme.LocalAppColors
 
 /**
@@ -70,6 +77,7 @@ fun EditScreen(
     pipelineRunId: Int = 0,
     selectedSize: PhotoSize = PhotoSizeManager.standardSizes[1],
     photoDpi: Int = 300,
+    isSaving: Boolean = false,
     onBack: () -> Unit,
     onSave: (scale: Float, offsetX: Float, offsetY: Float, frameWidth: Int, frameHeight: Int, saveOptions: SaveOptions) -> Unit,
     onBgColorSelected: (Color) -> Unit,
@@ -81,6 +89,7 @@ fun EditScreen(
 ) {
     val strings = LocalStrings.current
     val colors = LocalAppColors.current
+    val haptic = LocalHapticFeedback.current
 
     // ── State for drag & zoom — declared before UI so Save button can access ──
     var scale by remember { mutableFloatStateOf(1f) }
@@ -91,6 +100,9 @@ fun EditScreen(
 
     // ── Save options dialog state ──
     var showSaveDialog by remember { mutableStateOf(false) }
+
+    // ── Back confirmation dialog state ──
+    var showBackConfirmDialog by remember { mutableStateOf(false) }
 
     // Reset when a new photo is loaded (new pipeline run), NOT when bg/brightness changes
     LaunchedEffect(pipelineRunId) {
@@ -107,11 +119,47 @@ fun EditScreen(
             onDismiss = { showSaveDialog = false },
             onConfirm = { saveOptions ->
                 showSaveDialog = false
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onSave(scale, offsetX, offsetY, frameWidthPx, frameHeightPx, saveOptions)
             },
         )
     }
 
+    // ── Back Confirmation Dialog ──
+    if (showBackConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showBackConfirmDialog = false },
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = colors.accent,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = { Text(strings.back, fontWeight = FontWeight.Bold) },
+            text = { Text(strings.backConfirmMessage) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBackConfirmDialog = false
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.error),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(strings.backConfirmYes)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBackConfirmDialog = false }) {
+                    Text(strings.cancel)
+                }
+            },
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -119,54 +167,35 @@ fun EditScreen(
     ) {
         // ── Top Bar ──
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth(),
             color = colors.surface,
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 52.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
+                    .padding(top = 8.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
-                    onClick = onBack,
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.background,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.ArrowBackIosNew,
-                            contentDescription = strings.back,
-                            modifier = Modifier.size(22.dp),
-                            tint = colors.textPrimary,
-                        )
-                    }
-                }
+                SurfaceIconButton(
+                    icon = Icons.Default.ArrowBackIosNew,
+                    contentDescription = strings.back,
+                    onClick = { showBackConfirmDialog = true },
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     strings.editTitle,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary,
+                    color = colors.onSurface,
+                    letterSpacing = (-0.3).sp,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                GradientButton(
+                    text = strings.save,
                     onClick = { showSaveDialog = true },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primary,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Save,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(strings.save, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
+                    icon = Icons.Default.Save,
+                )
             }
         }
 
@@ -198,6 +227,15 @@ fun EditScreen(
             }
 
             // Photo frame — clipped container (tỷ lệ khớp với selectedSize)
+            // Add bottom padding to reserve space for the background/brightness panel
+            // anchored at BottomCenter, so the frame never gets covered.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 44.dp, bottom = 200.dp),
+            ) {
             Box(
                 modifier = Modifier
                     .width(frameWidth)
@@ -271,60 +309,98 @@ fun EditScreen(
                 }
             }
 
-            // Reset button — only show when adjusted
-            if (scale != 1f || offsetX != 0f || offsetY != 0f) {
+            }  // end Column photo frame
+
+            // ── Top overlay row: [size badge] [gesture hint] [reset] ──
+            // Arranged in a single Row so they never overlap each other.
+            val isAdjusted = scale != 1f || offsetX != 0f || offsetY != 0f
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Size badge (left)
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 8.dp, end = 8.dp),
-                    onClick = {
-                        scale = 1f
-                        offsetX = 0f
-                        offsetY = 0f
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black.copy(alpha = 0.55f),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
-                            Icons.Default.RestartAlt,
-                            contentDescription = "Reset",
+                            Icons.Default.CropPortrait,
+                            contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            "${selectedSize.name} (${selectedSize.displaySize})",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White,
                         )
                     }
                 }
-            }
 
-            // Size info badge — hiển thị cỡ ảnh đang edit
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 8.dp, start = 8.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.Black.copy(alpha = 0.55f),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        Icons.Default.CropPortrait,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(12.dp),
-                    )
-                    Text(
-                        "${selectedSize.name} (${selectedSize.displaySize})",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White,
-                    )
+                // Gesture hint (center, flexible — shrinks before overlapping)
+                if (photo != null) {
+                    val hintAlpha = if (isAdjusted) 0.45f else 0.9f
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .alpha(hintAlpha),
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.onSurface.copy(alpha = 0.06f),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                Icons.Default.ZoomOutMap,
+                                contentDescription = null,
+                                tint = colors.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(11.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                strings.pinchToZoomHint,
+                                fontSize = 9.sp,
+                                color = colors.onSurface.copy(alpha = 0.6f),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
+                // Reset button (right) — only when adjusted
+                if (isAdjusted) {
+                    Surface(
+                        onClick = {
+                            scale = 1f
+                            offsetX = 0f
+                            offsetY = 0f
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.Black.copy(alpha = 0.5f),
+                    ) {
+                        Icon(
+                            Icons.Default.RestartAlt,
+                            contentDescription = strings.contentReset,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                                .size(14.dp),
+                        )
+                    }
                 }
             }
 
@@ -344,7 +420,7 @@ fun EditScreen(
                 shadowElevation = 4.dp,
             ) {
                 var bgTab by remember { mutableIntStateOf(0) }
-                val bgTabs = listOf("Đơn sắc", "Gradient", "Studio")
+                val bgTabs = listOf(strings.bgTabSolid, strings.bgTabGradient, strings.bgTabStudio)
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     // Category tabs
                     Row(
@@ -438,7 +514,7 @@ fun EditScreen(
                                 }
                                 Spacer(modifier = Modifier.height(3.dp))
                                 Text(
-                                    option.name,
+                                    strings.localizedBgName(option.name),
                                     fontSize = 9.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) colors.primary else colors.textTertiary,
@@ -472,13 +548,14 @@ fun EditScreen(
         // ── Edit Tools ──
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-            color = colors.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = colors.surfaceContainerLow,
+            shadowElevation = 8.dp,
         ) {
             Row(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 EditToolButton(Icons.Default.Palette, strings.tColor, activeEditTool == EditTool.CHANGE_BG) { onToolClick(EditTool.CHANGE_BG) }
@@ -487,7 +564,30 @@ fun EditScreen(
                 EditToolButton(Icons.Default.Print, strings.tPrint, false) { onNavigateToPrint() }
             }
         }
+    } // end Column
+
+    // ── Saving overlay ──
+    if (isSaving) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(enabled = false) { /* block touches */ },
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = Color.White)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    strings.saving,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
+            }
+        }
     }
+    } // end Box
 }
 
 // ─── Tool Panels ───────────────────────────────────
@@ -499,6 +599,7 @@ private fun BrightnessToolPanel(
     onClose: () -> Unit,
 ) {
     val colors = LocalAppColors.current
+    val strings = LocalStrings.current
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = colors.surface,
@@ -510,14 +611,14 @@ private fun BrightnessToolPanel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Độ sáng",
+                    strings.brightnessTitle,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = colors.textSecondary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Close, contentDescription = strings.contentClose, tint = colors.textSecondary, modifier = Modifier.size(18.dp))
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -536,7 +637,7 @@ private fun BrightnessToolPanel(
                 when {
                     brightnessLevel > 0.01f -> "+${(brightnessLevel * 100).toInt()}%"
                     brightnessLevel < -0.01f -> "${(brightnessLevel * 100).toInt()}%"
-                    else -> "Gốc"
+                    else -> strings.brightnessOriginal
                 },
                 fontSize = 12.sp,
                 color = colors.textTertiary,
@@ -557,24 +658,28 @@ private fun EditToolButton(
     val colors = LocalAppColors.current
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 10.dp)
-            .width(56.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp)
+            .width(64.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (isActive) colors.primary.copy(alpha = 0.15f) else colors.background),
+                .size(48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (isActive) colors.primaryContainer else colors.surfaceContainer)
+                .then(
+                    if (isActive) Modifier.border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 icon,
                 contentDescription = label,
                 modifier = Modifier.size(22.dp),
-                tint = if (isActive) colors.primary else colors.textSecondary,
+                tint = if (isActive) colors.primary else colors.onSurfaceVariant,
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
@@ -582,7 +687,7 @@ private fun EditToolButton(
             label,
             fontSize = 10.sp,
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-            color = if (isActive) colors.primary else colors.textSecondary,
+            color = if (isActive) colors.primary else colors.onSurfaceVariant,
         )
     }
 }
@@ -658,7 +763,7 @@ private fun SaveOptionsDialog(
                                 color = colors.textTertiary,
                             )
                             Text(
-                                "${currentSize.name} — ${currentSize.description}",
+                                "${currentSize.name} — ${strings.localizedSizeDescription(currentSize.description)}",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = colors.textPrimary,
@@ -685,11 +790,11 @@ private fun SaveOptionsDialog(
                 ) {
                     data class DpiOption(val dpi: Int, val label: String, val desc: String)
                     val dpiOptions = listOf(
-                        DpiOption(150, "150", "Draft"),
-                        DpiOption(200, "200", "OK"),
-                        DpiOption(300, "300", "HD ★"),
-                        DpiOption(450, "450", "Pro"),
-                        DpiOption(600, "600", "Ultra"),
+                        DpiOption(150, "150", strings.dpiDraft),
+                        DpiOption(200, "200", strings.dpiOk),
+                        DpiOption(300, "300", strings.dpiHd),
+                        DpiOption(450, "450", strings.dpiPro),
+                        DpiOption(600, "600", strings.dpiUltra),
                     )
                     dpiOptions.forEach { option ->
                         val isSelected = selectedDpi == option.dpi
@@ -708,13 +813,13 @@ private fun SaveOptionsDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 Text(
-                                    "${option.dpi}",
+                                    "${option.dpi} ${strings.dpi}",
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     fontSize = 14.sp,
                                     color = if (isSelected) colors.primary else colors.textSecondary,
                                 )
                                 Text(
-                                    "DPI",
+                                    strings.dpiLabel,
                                     fontSize = 9.sp,
                                     color = colors.textTertiary,
                                 )
@@ -836,7 +941,7 @@ private fun SaveOptionsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    listOf("PNG", "JPEG").forEach { format ->
+                    listOf(strings.formatPng, strings.formatJpeg).forEach { format ->
                         val isSelected = outputFormat == format
                         Surface(
                             onClick = { outputFormat = format },
@@ -853,7 +958,7 @@ private fun SaveOptionsDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 Icon(
-                                    if (format == "PNG") Icons.Default.Image else Icons.Default.Photo,
+                                    if (format == strings.formatPng) Icons.Default.Image else Icons.Default.Photo,
                                     contentDescription = null,
                                     tint = if (isSelected) colors.primary else colors.textSecondary,
                                     modifier = Modifier.size(24.dp),
@@ -866,7 +971,7 @@ private fun SaveOptionsDialog(
                                     color = if (isSelected) colors.primary else colors.textSecondary,
                                 )
                                 Text(
-                                    if (format == "PNG") "Chất lượng cao" else "Nhẹ hơn",
+                                    if (format == strings.formatPng) strings.formatHighQuality else strings.formatLightweight,
                                     fontSize = 10.sp,
                                     color = colors.textTertiary,
                                 )

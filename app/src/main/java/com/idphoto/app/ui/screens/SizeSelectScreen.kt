@@ -9,16 +9,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,466 +36,385 @@ import androidx.compose.ui.unit.sp
 import com.idphoto.app.processing.PhotoSize
 import com.idphoto.app.processing.PhotoSizeManager
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.localizedSizeDescription
+import com.idphoto.app.ui.components.SizeThumb
+import com.idphoto.app.ui.components.SurfaceIconButton
+import com.idphoto.app.ui.components.TonalChip
 import com.idphoto.app.ui.theme.LocalAppColors
 
 /**
- * Size Selection Screen — matching mockup.
- *
- * Top bar with back + title, search box, horizontal country tabs,
- * vertical list of sizes, custom size item at bottom.
+ * Size Selection Screen — Material 3 Expressive (Redesign 2.0).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SizeSelectScreen(
     onBack: () -> Unit,
     onSizeSelected: (PhotoSize) -> Unit,
-    onCustomSize: () -> Unit = {},
+    @Suppress("UNUSED_PARAMETER") onCustomSize: () -> Unit = {},
 ) {
     val strings = LocalStrings.current
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCountry by remember { mutableStateOf("VN") }
     val colors = LocalAppColors.current
 
-    // Custom size dialog state
-    var showCustomSizeDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCountry by remember { mutableStateOf("VN") }
+    var showCustomDialog by remember { mutableStateOf(false) }
 
     val countries = PhotoSizeManager.countries
     val sizes = remember(selectedCountry, searchQuery) {
-        if (searchQuery.isBlank()) {
-            PhotoSizeManager.getSizesByCountry(selectedCountry)
-        } else {
-            PhotoSizeManager.searchSizes(searchQuery)
-        }
+        if (searchQuery.isBlank()) PhotoSizeManager.getSizesByCountry(selectedCountry)
+        else PhotoSizeManager.searchSizes(searchQuery)
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background),
+            .background(colors.surface),
     ) {
-        // ── Top Bar ──
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = colors.surface,
-            shadowElevation = 0.dp,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 52.dp, bottom = 14.dp, start = 16.dp, end = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    onClick = onBack,
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.background,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.ArrowBackIosNew,
-                            contentDescription = strings.back,
-                            modifier = Modifier.size(22.dp),
-                            tint = colors.textPrimary,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    strings.selectSize,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary,
-                )
-            }
-        }
-
-        // ── Search Box ──
-        Surface(
+        // ── Topbar ────────────────────────────────────────────────────
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = colors.surfaceElevated,
-            shadowElevation = 1.dp,
+                .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = null,
-                    tint = colors.textTertiary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = {
-                        Text(
-                            strings.searchPlaceholder,
-                            color = colors.textTertiary,
-                            fontSize = 14.sp,
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                    singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
-                )
-            }
+            SurfaceIconButton(
+                Icons.AutoMirrored.Filled.ArrowBackIos,
+                onClick = onBack,
+                contentDescription = strings.back,
+                background = Color.Transparent,
+            )
+            Text(
+                strings.selectSize,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.onSurface,
+                modifier = Modifier.weight(1f),
+                letterSpacing = (-0.2).sp,
+            )
+            SurfaceIconButton(Icons.Filled.Tune, onClick = {}, contentDescription = "Filter")
         }
 
-        // ── Country Tabs ──
+        // ── Search ────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(colors.surfaceContainer)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Search, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            BasicTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = TextStyle(color = colors.onSurface, fontSize = 14.sp),
+                cursorBrush = Brush.verticalGradient(listOf(colors.primary, colors.primary)),
+                decorationBox = { inner ->
+                    if (searchQuery.isEmpty()) {
+                        Text(
+                            strings.searchPlaceholder,
+                            color = colors.onSurfaceVariant,
+                            fontSize = 14.sp,
+                        )
+                    }
+                    inner()
+                },
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // ── Country tabs ─────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            countries.forEach { countryTab ->
-                val isSelected = selectedCountry == countryTab.code
-                Surface(
-                    onClick = { selectedCountry = countryTab.code },
-                    shape = RoundedCornerShape(24.dp),
-                    color = if (isSelected) colors.primary else colors.surface,
-                    border = if (isSelected) null else ButtonDefaults.outlinedButtonBorder(enabled = true),
-                ) {
-                    Text(
-                        countryTab.name,
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isSelected) Color.White else colors.textSecondary,
-                    )
-                }
+            countries.forEach { country ->
+                CountryTab(
+                    name = country.name,
+                    flag = countryFlagEmoji(country.code),
+                    active = selectedCountry == country.code,
+                    onClick = { selectedCountry = country.code },
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(14.dp))
 
-        // ── Size List ──
+        // ── Size list ─────────────────────────────────────────────────
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
         ) {
-            items(sizes) { size ->
-                SizeListItem(
-                    name = size.name,
-                    description = size.description,
+            // First item: featured highlight if current country has a featured size
+            val featuredFirst = sizes.firstOrNull()
+            itemsIndexed(sizes, featuredFirst) { index, size ->
+                SizeRow(
+                    size = size,
+                    featured = (index == 0 && size == featuredFirst && searchQuery.isBlank()),
                     onClick = { onSizeSelected(size) },
                 )
             }
-            // Custom size item
             item {
-                CustomSizeItem(
-                    title = strings.customSize,
-                    subtitle = strings.customSizeSub,
-                    onClick = { showCustomSizeDialog = true },
-                )
+                CustomSizeRow(onClick = { showCustomDialog = true })
             }
         }
     }
 
-    // ── Custom Size Dialog ──
-    if (showCustomSizeDialog) {
+    if (showCustomDialog) {
         CustomSizeDialog(
-            onDismiss = { showCustomSizeDialog = false },
+            onDismiss = { showCustomDialog = false },
             onConfirm = { customSize ->
-                showCustomSizeDialog = false
+                showCustomDialog = false
                 onSizeSelected(customSize)
             },
         )
     }
 }
 
-@Composable
-private fun SizeListItem(
-    name: String,
-    description: String,
-    onClick: () -> Unit,
+// Helper because LazyListScope.items doesn't take an extra param; use itemsIndexed.
+private inline fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexed(
+    items: List<PhotoSize>,
+    @Suppress("UNUSED_PARAMETER") featured: PhotoSize?,
+    crossinline content: @androidx.compose.runtime.Composable (Int, PhotoSize) -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = LocalAppColors.current.surface,
-        shadowElevation = 1.dp,
-        onClick = onClick,
+    items(items.size) { i -> content(i, items[i]) }
+}
+
+// ────────────────────── Tabs / Rows ──────────────────────
+
+@Composable
+private fun CountryTab(name: String, flag: String, active: Boolean, onClick: () -> Unit) {
+    val colors = LocalAppColors.current
+    val bg = if (active) colors.onSurface else colors.surfaceContainer
+    val fg = if (active) colors.surface else colors.onSurfaceVariant
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Thumbnail
-            Box(
-                modifier = Modifier
-                    .size(width = 48.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(LocalAppColors.current.primaryLight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(26.dp),
-                    tint = LocalAppColors.current.primary,
-                )
-            }
+        Text(flag, fontSize = 14.sp)
+        Text(name, color = fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
 
-            Spacer(modifier = Modifier.width(14.dp))
+private fun countryFlagEmoji(code: String): String = when (code.uppercase()) {
+    "VN" -> "🇻🇳"; "US" -> "🇺🇸"; "JP" -> "🇯🇵"; "EU" -> "🇪🇺"; "KR" -> "🇰🇷"; "CN" -> "🇨🇳"
+    "GB", "UK" -> "🇬🇧"; "FR" -> "🇫🇷"; "DE" -> "🇩🇪"; "IN" -> "🇮🇳"
+    else -> "🌐"
+}
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LocalAppColors.current.textPrimary,
+@Composable
+private fun SizeRow(size: PhotoSize, featured: Boolean, onClick: () -> Unit) {
+    val colors = LocalAppColors.current
+    val containerMod = if (featured) {
+        Modifier
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        colors.primary.copy(alpha = if (colors.isDark) 0.18f else 0.08f),
+                        colors.primaryGrad2.copy(alpha = if (colors.isDark) 0.18f else 0.10f),
+                    )
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    description,
-                    fontSize = 12.sp,
-                    color = LocalAppColors.current.textTertiary,
-                )
-            }
-
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = LocalAppColors.current.textTertiary,
             )
+            .border(1.5.dp, colors.primary.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+    } else {
+        Modifier
+            .background(colors.surfaceContainerLowest)
+            .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp))
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .then(containerMod)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        SizeThumb(width = 36.dp, height = 50.dp, accent = colors.primary)
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    size.name,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onSurface,
+                )
+                if (featured) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        LocalStrings.current.mostPopularSuffix,
+                        fontSize = 12.sp,
+                        color = colors.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(LocalStrings.current.localizedSizeDescription(size.description), fontSize = 12.sp, color = colors.onSurfaceVariant)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                "${size.widthPx}×${size.heightPx}px",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.primary,
+            )
+            if (featured) {
+                Spacer(Modifier.height(4.dp))
+                TonalChip(
+                    text = LocalStrings.current.suggestedBadge,
+                    background = if (colors.isDark) Color(0x4400C9A7) else Color(0xFFD7F5E8),
+                    contentColor = if (colors.isDark) Color(0xFF7FF0CE) else Color(0xFF00533B),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun CustomSizeItem(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = LocalAppColors.current.surface,
-        shadowElevation = 1.dp,
-        onClick = onClick,
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 48.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(LocalAppColors.current.primaryLight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(26.dp),
-                    tint = LocalAppColors.current.primary,
+private fun CustomSizeRow(onClick: () -> Unit) {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        colors.secondary.copy(alpha = 0.10f),
+                        colors.primary.copy(alpha = 0.06f),
+                    )
                 )
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LocalAppColors.current.textPrimary,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    subtitle,
-                    fontSize = 12.sp,
-                    color = LocalAppColors.current.textTertiary,
-                )
-            }
-
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = LocalAppColors.current.textTertiary,
             )
+            .border(1.5.dp, colors.secondary, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        SizeThumb(width = 36.dp, height = 48.dp, accent = colors.secondary)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(strings.customSize, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+            Spacer(Modifier.height(2.dp))
+            Text(strings.customSizeSub, fontSize = 12.sp, color = colors.onSurfaceVariant)
         }
+        Icon(Icons.Filled.AddCircle, null, tint = colors.secondary, modifier = Modifier.size(28.dp))
     }
 }
 
-// ── Custom Size Dialog ──
+// ────────────────────── Custom size dialog ──────────────────────
 
 @Composable
-private fun CustomSizeDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (PhotoSize) -> Unit,
-) {
+private fun CustomSizeDialog(onDismiss: () -> Unit, onConfirm: (PhotoSize) -> Unit) {
     val colors = LocalAppColors.current
     val strings = LocalStrings.current
 
-    var widthText by remember { mutableStateOf("") }
-    var heightText by remember { mutableStateOf("") }
-    var nameText by remember { mutableStateOf("") }
+    var width by remember { mutableStateOf("") }
+    var height by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = colors.surface,
+        containerColor = colors.surfaceContainerLow,
+        shape = RoundedCornerShape(28.dp),
         title = {
-            Text(
-                strings.customSize,
-                fontWeight = FontWeight.Bold,
-                color = colors.textPrimary,
-            )
+            Text(strings.customSize, fontWeight = FontWeight.ExtraBold, color = colors.onSurface)
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Name field (optional)
                 OutlinedTextField(
-                    value = nameText,
-                    onValueChange = { nameText = it },
-                    label = { Text("Tên (tuỳ chọn)", fontSize = 13.sp) },
-                    placeholder = { Text("Ví dụ: Ảnh thẻ 3x4", fontSize = 13.sp) },
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(strings.customNameLabel, fontSize = 13.sp) },
+                    placeholder = { Text(strings.customNameExample, fontSize = 13.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
                 )
-
-                // Width & Height row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
-                        value = widthText,
-                        onValueChange = {
-                            widthText = it.filter { c -> c.isDigit() || c == '.' }
-                            hasError = false
-                        },
-                        label = { Text("Rộng (mm)", fontSize = 13.sp) },
-                        placeholder = { Text("30", fontSize = 13.sp) },
+                        value = width,
+                        onValueChange = { width = it.filter { c -> c.isDigit() || c == '.' }; hasError = false },
+                        label = { Text(strings.customWidthMmLabel) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = hasError && widthText.toFloatOrNull() == null,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                        isError = hasError && width.toFloatOrNull() == null,
                     )
                     OutlinedTextField(
-                        value = heightText,
-                        onValueChange = {
-                            heightText = it.filter { c -> c.isDigit() || c == '.' }
-                            hasError = false
-                        },
-                        label = { Text("Cao (mm)", fontSize = 13.sp) },
-                        placeholder = { Text("40", fontSize = 13.sp) },
+                        value = height,
+                        onValueChange = { height = it.filter { c -> c.isDigit() || c == '.' }; hasError = false },
+                        label = { Text(strings.customHeightMmLabel) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = hasError && heightText.toFloatOrNull() == null,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                        isError = hasError && height.toFloatOrNull() == null,
                     )
                 }
-
-                if (hasError) {
-                    Text(
-                        "Vui lòng nhập chiều rộng và cao hợp lệ",
-                        fontSize = 12.sp,
-                        color = Color(0xFFC62828),
-                    )
-                }
-
-                // Preview info
-                val w = widthText.toFloatOrNull()
-                val h = heightText.toFloatOrNull()
+                val w = width.toFloatOrNull(); val h = height.toFloatOrNull()
                 if (w != null && h != null && w > 0 && h > 0) {
-                    val dpi = 300
-                    val pxW = (w / 25.4f * dpi).toInt()
-                    val pxH = (h / 25.4f * dpi).toInt()
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.primary.copy(alpha = 0.08f),
+                    val pxW = (w / 25.4f * 300).toInt(); val pxH = (h / 25.4f * 300).toInt()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.primary.copy(alpha = 0.08f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Default.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = colors.primary,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "${w.toInt()}×${h.toInt()} mm → ${pxW}×${pxH} px (300 DPI)",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.primary,
-                            )
-                        }
+                        Icon(Icons.Filled.Info, null, tint = colors.primary, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "${w.toInt()}×${h.toInt()} mm → ${pxW}×${pxH} px (300 DPI)",
+                            fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.primary,
+                        )
                     }
                 }
+                if (hasError) Text(strings.customInvalidSize, fontSize = 12.sp, color = colors.error)
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val w = widthText.toFloatOrNull()
-                    val h = heightText.toFloatOrNull()
+                    val w = width.toFloatOrNull(); val h = height.toFloatOrNull()
                     if (w != null && h != null && w > 0 && h > 0) {
-                        val dpi = 300
-                        val pxW = (w / 25.4f * dpi).toInt()
-                        val pxH = (h / 25.4f * dpi).toInt()
-                        val displayName = if (nameText.isNotBlank()) nameText
-                            else "${w.toInt()}x${h.toInt()} mm"
-                        val customSize = PhotoSize(
-                            name = displayName,
-                            widthMm = w,
-                            heightMm = h,
-                            description = strings.customSize,
-                            widthPx = pxW,
-                            heightPx = pxH,
-                            country = "CUSTOM",
+                        val pxW = (w / 25.4f * 300).toInt(); val pxH = (h / 25.4f * 300).toInt()
+                        val displayName = if (name.isNotBlank()) name else "${w.toInt()}x${h.toInt()} mm"
+                        onConfirm(
+                            PhotoSize(
+                                name = displayName, widthMm = w, heightMm = h,
+                                description = strings.customSize,
+                                widthPx = pxW, heightPx = pxH, country = "CUSTOM",
+                            )
                         )
-                        onConfirm(customSize)
-                    } else {
-                        hasError = true
-                    }
+                    } else hasError = true
                 },
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(999.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-            ) {
-                Text(strings.done, fontWeight = FontWeight.SemiBold)
-            }
+            ) { Text(strings.done, fontWeight = FontWeight.SemiBold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(strings.cancel, color = colors.textSecondary)
-            }
+            TextButton(onClick = onDismiss) { Text(strings.cancel, color = colors.onSurfaceVariant) }
         },
     )
 }

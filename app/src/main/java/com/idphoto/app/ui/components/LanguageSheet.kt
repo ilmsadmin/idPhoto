@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.idphoto.app.ui.AppLanguage
 import com.idphoto.app.ui.LocalLanguage
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.theme.LocalAppColors
 
 /**
  * Language selection bottom sheet — matching mockup.
@@ -34,12 +35,13 @@ fun LanguageSheet(
     onDismiss: () -> Unit,
 ) {
     val strings = LocalStrings.current
+    val colors = LocalAppColors.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = Color.White,
+        containerColor = colors.surface,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -47,7 +49,7 @@ fun LanguageSheet(
                     .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color(0xFFE8EAED)),
+                    .background(colors.divider),
             )
         },
     ) {
@@ -58,7 +60,7 @@ fun LanguageSheet(
                 strings.chooseLang,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1A1C1E),
+                color = colors.textPrimary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -67,10 +69,18 @@ fun LanguageSheet(
 
             AppLanguage.entries.forEach { lang ->
                 val isSelected = lang == currentLanguage
+                val secondary = when (lang.code) {
+                    "vi" -> strings.langSecondaryVi
+                    "en" -> strings.langSecondaryEn
+                    "ja" -> strings.langSecondaryJa
+                    "zh" -> strings.langSecondaryZh
+                    "kr", "ko" -> strings.langSecondaryKr
+                    else -> ""
+                }
                 LanguageOption(
                     flag = langFlags[lang.code] ?: "🌐",
                     name = lang.nativeName,
-                    secondaryName = langSecondaryNames[lang.code] ?: "",
+                    secondaryName = secondary,
                     isSelected = isSelected,
                     onClick = { onLanguageSelected(lang) },
                 )
@@ -153,11 +163,6 @@ private val langFlags = mapOf(
     "en" to "🇺🇸",
     "ja" to "🇯🇵",
     "zh" to "🇨🇳",
-)
-
-private val langSecondaryNames = mapOf(
-    "vi" to "Vietnamese",
-    "en" to "Tiếng Anh",
-    "ja" to "Tiếng Nhật",
-    "zh" to "Tiếng Trung",
+    "kr" to "🇰🇷",
+    "ko" to "🇰🇷",
 )
