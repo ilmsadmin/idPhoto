@@ -151,6 +151,7 @@ fun CameraScreen(
     var liveQuality by remember { mutableStateOf(LiveQualityState()) }
     val qualityChecker = remember { QualityChecker() }
     val isAnalyzing = remember { AtomicBoolean(false) }
+    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
 
     // Countdown timer state
     var timerSeconds by remember { mutableIntStateOf(0) } // 0 = off, 3 or 5
@@ -178,6 +179,17 @@ fun CameraScreen(
     }
 
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            runCatching { cameraProviderFuture.get().unbindAll() }
+            analysisExecutor.shutdown()
+            qualityChecker.close()
+            galleryThumbnail?.recycle()
+            capturedPhotos.forEach { if (!it.isRecycled) it.recycle() }
+            capturedPhotos.clear()
+        }
+    }
 
     // Countdown logic
     LaunchedEffect(countdownActive, countdownValue) {
@@ -233,7 +245,7 @@ fun CameraScreen(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Close",
+                        contentDescription = strings.back,
                         tint = Color.White,
                         modifier = Modifier.size(22.dp),
                     )
@@ -310,6 +322,7 @@ fun CameraScreen(
                     imageCapture = imageCapture,
                     qualityChecker = qualityChecker,
                     isAnalyzing = isAnalyzing,
+                    analysisExecutor = analysisExecutor,
                     onQualityUpdate = { result ->
                         liveQuality = result
                     },
@@ -417,7 +430,7 @@ fun CameraScreen(
                         if (thumb != null) {
                             Image(
                                 bitmap = thumb.asImageBitmap(),
-                                contentDescription = "Gallery",
+                                contentDescription = strings.btnGallery,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -426,7 +439,7 @@ fun CameraScreen(
                         } else {
                             Icon(
                                 Icons.Default.Image,
-                                contentDescription = "Gallery",
+                                contentDescription = strings.btnGallery,
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp),
                             )
@@ -571,7 +584,8 @@ fun CameraScreen(
                             onClick = { onPhotoSelected(bitmap) },
                             onDelete = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                capturedPhotos.removeAt(index)
+                                val removed = capturedPhotos.removeAt(index)
+                                if (!removed.isRecycled) removed.recycle()
                             },
                         )
                     }
@@ -872,6 +886,7 @@ private fun bindCameraWithAnalysis(
     imageCapture: MutableState<ImageCapture?>,
     qualityChecker: QualityChecker,
     isAnalyzing: AtomicBoolean,
+    analysisExecutor: java.util.concurrent.ExecutorService,
     onQualityUpdate: (LiveQualityState) -> Unit,
 ) {
     try {
@@ -889,7 +904,6 @@ private fun bindCameraWithAnalysis(
         imageCapture.value = capture
 
         // Image Analysis for real-time face quality check
-        val analysisExecutor = Executors.newSingleThreadExecutor()
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
@@ -990,11 +1004,10 @@ private fun capturePhoto(
 
     val photoFile = File(context.cacheDir, "captured_${System.currentTimeMillis()}.jpg")
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-    val executor = Executors.newSingleThreadExecutor()
 
     capture.takePicture(
         outputOptions,
-        executor,
+        ContextCompat.getMainExecutor(context),
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                 try {

@@ -344,6 +344,10 @@ data class Strings(
     val cameraScanning: String,
     val cameraEditHint: String,
 
+    // Quality check issues — full check messages
+
+    // Quick check hints — live preview hints
+
     // Background names (keyed by default Vietnamese)
     val bgNames: Map<String, String>,
 
@@ -411,7 +415,7 @@ fun Strings.pipelineStepLabel(index: Int): String = when (index) {
     else -> ""
 }
 
-val ViStrings = Strings(
+private val _viStrings: Strings by lazy { Strings(
     splashSub = "Ảnh thẻ chuyên nghiệp",
     homeSub = "Chụp ảnh thẻ chuyên nghiệp",
     btnCamera = "Chụp ảnh",
@@ -684,6 +688,10 @@ val ViStrings = Strings(
     cameraScanning = "Đang quét...",
     cameraEditHint = "Chỉnh sửa",
 
+    // Quality check issues — full check messages
+
+    // Quick check hints — live preview hints
+
     bgNames = mapOf(
         DefaultBgKeys.WHITE to "Trắng",
         DefaultBgKeys.BLUE to "Xanh dương",
@@ -760,8 +768,9 @@ val ViStrings = Strings(
         "AU" to "Úc",
     ),
 )
+}
 
-val EnStrings = Strings(
+private val _enStrings: Strings by lazy { Strings(
     splashSub = "Professional ID Photos",
     homeSub = "Professional ID Photo Maker",
     btnCamera = "Camera",
@@ -1034,6 +1043,10 @@ val EnStrings = Strings(
     cameraScanning = "Scanning...",
     cameraEditHint = "Edit",
 
+    // Quality check issues — full check messages
+
+    // Quick check hints — live preview hints
+
     bgNames = mapOf(
         DefaultBgKeys.WHITE to "White",
         DefaultBgKeys.BLUE to "Blue",
@@ -1110,8 +1123,9 @@ val EnStrings = Strings(
         "AU" to "Australia",
     ),
 )
+}
 
-val JaStrings = Strings(
+private val _jaStrings: Strings by lazy { Strings(
     splashSub = "プロの証明写真",
     homeSub = "プロの証明写真アプリ",
     btnCamera = "撮影",
@@ -1384,6 +1398,10 @@ val JaStrings = Strings(
     cameraScanning = "スキャン中...",
     cameraEditHint = "編集",
 
+    // Quality check issues — full check messages
+
+    // Quick check hints — live preview hints
+
     bgNames = mapOf(
         DefaultBgKeys.WHITE to "白",
         DefaultBgKeys.BLUE to "青",
@@ -1460,8 +1478,9 @@ val JaStrings = Strings(
         "AU" to "オーストラリア",
     ),
 )
+}
 
-val ZhStrings = Strings(
+private val _zhStrings: Strings by lazy { Strings(
     splashSub = "专业证件照",
     homeSub = "专业证件照制作",
     btnCamera = "拍照",
@@ -1734,6 +1753,10 @@ val ZhStrings = Strings(
     cameraScanning = "扫描中...",
     cameraEditHint = "编辑",
 
+    // Quality check issues — full check messages
+
+    // Quick check hints — live preview hints
+
     bgNames = mapOf(
         DefaultBgKeys.WHITE to "白色",
         DefaultBgKeys.BLUE to "蓝色",
@@ -1810,8 +1833,9 @@ val ZhStrings = Strings(
         "AU" to "澳大利亚",
     ),
 )
+}
 
-val KrStrings = Strings(
+private val _krStrings: Strings by lazy { Strings(
     // Splash
     splashSub = "전문 증명사진",
     // Home
@@ -2119,6 +2143,10 @@ val KrStrings = Strings(
     cameraScanning = "스캔 중...",
     cameraEditHint = "편집",
 
+    // Quality check issues — full check messages
+
+    // Quick check hints — live preview hints
+
     bgNames = mapOf(
         DefaultBgKeys.WHITE to "흰색",
         DefaultBgKeys.BLUE to "파란색",
@@ -2195,6 +2223,13 @@ val KrStrings = Strings(
         "AU" to "호주",
     ),
 )
+}
+
+val ViStrings: Strings get() = _viStrings
+val EnStrings: Strings get() = _enStrings
+val JaStrings: Strings get() = _jaStrings
+val ZhStrings: Strings get() = _zhStrings
+val KrStrings: Strings get() = _krStrings
 
 val LocalStrings = compositionLocalOf { getStrings(AppLanguage.fromSystemLocale()) }
 val LocalLanguage = compositionLocalOf { AppLanguage.fromSystemLocale() }

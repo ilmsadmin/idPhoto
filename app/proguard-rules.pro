@@ -33,12 +33,10 @@
 -dontwarn ai.onnxruntime.**
 
 # ML Kit — keep public API for face detection & segmentation
--keep class com.google.mlkit.** { *; }
+-keep class com.google.mlkit.vision.face.** { *; }
+-keep class com.google.mlkit.vision.segmentation.** { *; }
+-keep class com.google.mlkit.common.** { *; }
 -dontwarn com.google.mlkit.**
-
-# CameraX — keep camera provider
--keep class androidx.camera.** { *; }
--dontwarn androidx.camera.**
 
 # Kotlin Coroutines
 -dontwarn kotlinx.coroutines.**

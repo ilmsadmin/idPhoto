@@ -213,6 +213,8 @@ class IDPhotoPipeline(private val context: Context) {
     }
 
     fun close() {
+        faceMeshProcessor.close()
+        qualityChecker.close()
         mlKitSegmenter.close()
         modNetProcessor.close()
     }

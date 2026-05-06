@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -286,8 +287,10 @@ fun EditScreen(
                                 scaleY = scale
                                 translationX = offsetX
                                 translationY = offsetY
+                                transformOrigin = TransformOrigin(0.5f, 1f)
                             },
                         contentScale = ContentScale.Fit,
+                        alignment = Alignment.BottomCenter,
                     )
                 } else {
                     // Placeholder

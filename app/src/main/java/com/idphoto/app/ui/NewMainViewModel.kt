@@ -86,6 +86,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
+    private val faceMeshProcessor = FaceMeshProcessor(application)
     private val pipeline = IDPhotoPipeline(application)
     private val modNetProcessor = MODNetProcessor(application)
     private val settingsStore = SettingsDataStore(application)
@@ -171,8 +172,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val autoCropped = withContext(Dispatchers.Default) {
                 try {
-                    FaceMeshProcessor(getApplication())
-                        .cropForIdPhotoPreserveResolution(raw, face, size)
+                    faceMeshProcessor.cropForIdPhotoPreserveResolution(raw, face, size)
                 } catch (e: Exception) {
                     raw
                 }
@@ -292,8 +292,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         val size = _uiState.value.selectedSize
                         val autoCropped = if (face != null && face.confidence > 0f) {
                             try {
-                                FaceMeshProcessor(getApplication())
-                                    .cropForIdPhotoPreserveResolution(rawSegmented, face, size)
+                                faceMeshProcessor.cropForIdPhotoPreserveResolution(rawSegmented, face, size)
                             } catch (e: Exception) {
                                 rawSegmented
                             }
@@ -428,8 +427,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         val size = _uiState.value.selectedSize
                         val autoCropped = if (face != null && face.confidence > 0f) {
                             try {
-                                FaceMeshProcessor(getApplication())
-                                    .cropForIdPhotoPreserveResolution(rawSegmented, face, size)
+                                faceMeshProcessor.cropForIdPhotoPreserveResolution(rawSegmented, face, size)
                             } catch (e: Exception) {
                                 rawSegmented
                             }
@@ -509,6 +507,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             foreground = withContext(Dispatchers.Default) {
                 OutfitOverlay.applyOutfit(foreground, null, outfit)
             }
+        }
+
+        foreground = withContext(Dispatchers.Default) {
+            ImageUtils.decontaminateWhiteEdges(foreground)
         }
 
         // Expose foreground (with alpha) so EditScreen can pan/zoom it over a static bg frame
@@ -692,31 +694,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         foreground = adjustBitmapBrightness(foreground, factor)
                     }
 
-                    // ── QUAN TRỌNG: Composite foreground lên background ở FULL resolution ──
-                    // Giống hệt rebuildComposite() — pixel-by-pixel alpha blending ở resolution gốc.
-                    // PHẢI composite TRƯỚC khi scale, vì Canvas.drawBitmap() trên ảnh có alpha
-                    // sẽ interpolate premultiplied alpha khi scale → làm mờ viền tóc, lông mày.
-                    var compositeFull = if (bgOption != null && bgOption.gradientColors != null) {
-                        ImageUtils.compositeOnGradientBackground(foreground, bgOption)
-                    } else {
-                        val androidBgColor = android.graphics.Color.rgb(
-                            (bgColor.red * 255).toInt(),
-                            (bgColor.green * 255).toInt(),
-                            (bgColor.blue * 255).toInt()
-                        )
-                        ImageUtils.compositeOnBackground(foreground, androidBgColor)
-                    }
-
-                    // Apply outfit if selected — giống hệt rebuildComposite()
+                    // Apply outfit if selected — giống hệt rebuildComposite(), trước khi render lên nền.
                     val outfitIndex = _uiState.value.selectedOutfitIndex
                     if (outfitIndex > 0 && outfitIndex < OutfitOverlay.outfitOptions.size) {
                         val outfit = OutfitOverlay.outfitOptions[outfitIndex]
-                        compositeFull = OutfitOverlay.applyOutfit(compositeFull, null, outfit)
+                        foreground = OutfitOverlay.applyOutfit(foreground, null, outfit)
                     }
 
-                    // ── Bây giờ compositeFull là ảnh OPAQUE (không có alpha) giống preview ──
-                    // Render với transform (zoom/pan) lên output — dùng ảnh opaque nên
-                    // Canvas bilinear filter KHÔNG gây mờ viền.
+                    foreground = ImageUtils.decontaminateWhiteEdges(foreground)
 
                     // Tính target pixel theo DPI user chọn (thay vì cố định 300 DPI)
                     val targetW = targetSize.widthPxAtDpi(photoDpi)
@@ -726,28 +711,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     // Tránh render hi-res rồi downscale (gây mờ tóc/lông mày).
                     // renderFramedBitmap đã dùng highQualityScale bên trong.
 
-                    // renderFramedBitmap trên ảnh opaque — vẫn dùng bgColor để fill
-                    // vùng ngoài ảnh (khi user zoom in, viền bị lộ ra)
-                    val frameBgColor = if (bgOption != null && bgOption.gradientColors == null && bgOption.color != android.graphics.Color.TRANSPARENT) {
-                        bgOption.color
+                    // Render giống preview: nền cố định full-frame, foreground alpha mới được pan/zoom.
+                    val framed = if (bgOption != null && bgOption.gradientColors != null) {
+                        ImageUtils.renderFramedBitmapWithOption(
+                            foreground = foreground,
+                            bgOption = bgOption,
+                            scale = scale,
+                            offsetX = offsetX,
+                            offsetY = offsetY,
+                            frameWidth = frameWidth,
+                            frameHeight = frameHeight,
+                            outputWidth = targetW,
+                            outputHeight = targetH,
+                        )
                     } else {
-                        android.graphics.Color.rgb(
+                        val frameBgColor = bgOption?.color ?: android.graphics.Color.rgb(
                             (bgColor.red * 255).toInt(),
                             (bgColor.green * 255).toInt(),
                             (bgColor.blue * 255).toInt()
                         )
+                        ImageUtils.renderFramedBitmap(
+                            foreground = foreground,
+                            bgColor = frameBgColor,
+                            scale = scale,
+                            offsetX = offsetX,
+                            offsetY = offsetY,
+                            frameWidth = frameWidth,
+                            frameHeight = frameHeight,
+                            outputWidth = targetW,
+                            outputHeight = targetH,
+                        )
                     }
-                    val framed = ImageUtils.renderFramedBitmap(
-                        foreground = compositeFull,
-                        bgColor = frameBgColor,
-                        scale = scale,
-                        offsetX = offsetX,
-                        offsetY = offsetY,
-                        frameWidth = frameWidth,
-                        frameHeight = frameHeight,
-                        outputWidth = targetW,
-                        outputHeight = targetH,
-                    )
 
                     // Không cần scale thêm — đã render đúng target size
                     val cropped = framed
@@ -904,6 +898,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
+        faceMeshProcessor.close()
         pipeline.close()
         modNetProcessor.close()
     }

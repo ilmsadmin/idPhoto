@@ -16,6 +16,7 @@ import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.roundToInt
 
 /**
  * Tiện ích ghép nền và lưu ảnh.
@@ -23,7 +24,9 @@ import java.io.FileOutputStream
 object ImageUtils {
 
     /**
-     * Các màu nền chuẩn cho ảnh thẻ
+     * Các màu nền chuẩn cho ảnh thẻ.
+     * Tên màu sắc là key mặc định (tiếng Việt).
+     * Dùng Strings.bgNames để lấy tên hiển thị theo ngôn ngữ ứng dụng.
      */
     data class BackgroundOption(
         val name: String,
@@ -160,7 +163,7 @@ object ImageUtils {
 
     /**
      * Render ảnh cuối cùng theo đúng vị trí user đã kéo/zoom trong khung.
-     * Mô phỏng lại ContentScale.Fit + graphicsLayer(scale, translationX, translationY).
+      * Mô phỏng lại ContentScale.Fit căn đáy + graphicsLayer(scale, translationX, translationY).
      *
      * @param foreground  Ảnh đã xóa nền (có alpha)
      * @param bgColor     Màu nền Android (Color.rgb)
@@ -208,68 +211,17 @@ object ImageUtils {
             canvas.drawColor(bgColor)
         }
 
-        // ── Mapping ratio: frame-pixel → output-pixel ──
-        // QUAN TRỌNG: Dùng uniform ratio (cùng 1 giá trị cho cả X và Y)
-        // để tránh biến dạng (méo ảnh). Nếu frame trên screen có aspect ratio
-        // hơi khác output (do dp→px rounding), ta dùng min ratio để ảnh vừa
-        // khít trong output, rồi center phần dư.
-        val rawRatioX = outW.toFloat() / frameWidth.toFloat()
-        val rawRatioY = outH.toFloat() / frameHeight.toFloat()
-        val uniformRatio = minOf(rawRatioX, rawRatioY)
-
-        // Offset để center ảnh nếu output aspect khác frame aspect
-        val centerOffsetX = (outW - frameWidth * uniformRatio) / 2f
-        val centerOffsetY = (outH - frameHeight * uniformRatio) / 2f
-
-        // Step 1: ContentScale.Fit — fit foreground into frame, centered
-        val fitScale = minOf(
-            frameWidth.toFloat() / foreground.width.toFloat(),
-            frameHeight.toFloat() / foreground.height.toFloat()
+        drawTransformedForeground(
+            canvas = canvas,
+            foreground = foreground,
+            frameWidth = frameWidth,
+            frameHeight = frameHeight,
+            outputWidth = outW,
+            outputHeight = outH,
+            scale = scale,
+            offsetX = offsetX,
+            offsetY = offsetY,
         )
-        val fittedW = foreground.width * fitScale
-        val fittedH = foreground.height * fitScale
-        // Top-left of fitted image in frame-space (centered)
-        val fitX = (frameWidth - fittedW) / 2f
-        val fitY = (frameHeight - fittedH) / 2f
-
-        // Step 2: graphicsLayer scale around center of Image (= center of frame)
-        val frameCx = frameWidth / 2f
-        val frameCy = frameHeight / 2f
-        val scaledFitX = frameCx + (fitX - frameCx) * scale
-        val scaledFitY = frameCy + (fitY - frameCy) * scale
-
-        // Step 3: graphicsLayer translation
-        val finalFrameX = scaledFitX + offsetX
-        val finalFrameY = scaledFitY + offsetY
-
-        // Map to output-pixel space — dùng uniform ratio + center offset
-        val outDrawX = finalFrameX * uniformRatio + centerOffsetX
-        val outDrawY = finalFrameY * uniformRatio + centerOffsetY
-        // Uniform scale cho cả X và Y — KHÔNG dùng riêng ratioX/ratioY
-        val totalScale = fitScale * scale * uniformRatio
-
-        // ── HIGH-QUALITY RENDERING ──
-        // Thay vì dùng Matrix scale trên Canvas (bilinear kém chất lượng),
-        // pre-scale bitmap bằng multi-step halving (Lanczos-like quality)
-        // rồi chỉ dùng Canvas translate (không scale).
-        // Dùng uniform totalScale cho cả width và height → giữ đúng tỷ lệ ảnh.
-        val destW = (foreground.width * totalScale).toInt().coerceAtLeast(1)
-        val destH = (foreground.height * totalScale).toInt().coerceAtLeast(1)
-
-        val scaledFg = highQualityScale(foreground, destW, destH)
-
-        val paint = Paint().apply {
-            isAntiAlias = true
-            isFilterBitmap = true
-            isDither = false
-        }
-
-        // Vẽ ảnh đã scale sẵn tại vị trí đúng — Canvas KHÔNG scale thêm
-        canvas.drawBitmap(scaledFg, outDrawX, outDrawY, paint)
-
-        if (scaledFg != foreground) {
-            scaledFg.recycle()
-        }
 
         return result
     }
@@ -316,38 +268,189 @@ object ImageUtils {
         }
         if (bgPaint.shader != null) canvas.drawRect(0f, 0f, outW.toFloat(), outH.toFloat(), bgPaint)
 
-        // Draw foreground with transform — uniform ratio to prevent distortion
-        val rawRatioX = outW.toFloat() / frameWidth.toFloat()
-        val rawRatioY = outH.toFloat() / frameHeight.toFloat()
-        val uniformRatio = minOf(rawRatioX, rawRatioY)
-        val centerOffsetX = (outW - frameWidth * uniformRatio) / 2f
-        val centerOffsetY = (outH - frameHeight * uniformRatio) / 2f
-
-        val fitScale = minOf(frameWidth.toFloat() / foreground.width.toFloat(), frameHeight.toFloat() / foreground.height.toFloat())
-        val fittedW = foreground.width * fitScale
-        val fittedH = foreground.height * fitScale
-        val fitX = (frameWidth - fittedW) / 2f
-        val fitY = (frameHeight - fittedH) / 2f
-        val frameCx = frameWidth / 2f
-        val frameCy = frameHeight / 2f
-        val scaledFitX = frameCx + (fitX - frameCx) * scale
-        val scaledFitY = frameCy + (fitY - frameCy) * scale
-        val finalFrameX = scaledFitX + offsetX
-        val finalFrameY = scaledFitY + offsetY
-        val outDrawX = finalFrameX * uniformRatio + centerOffsetX
-        val outDrawY = finalFrameY * uniformRatio + centerOffsetY
-        val totalScale = fitScale * scale * uniformRatio
-
-        // ── HIGH-QUALITY RENDERING — pre-scale thay vì Matrix scale ──
-        val destW = (foreground.width * totalScale).toInt().coerceAtLeast(1)
-        val destH = (foreground.height * totalScale).toInt().coerceAtLeast(1)
-        val scaledFg = highQualityScale(foreground, destW, destH)
-
-        val fgPaint = Paint().apply { isAntiAlias = true; isFilterBitmap = true; isDither = false }
-        canvas.drawBitmap(scaledFg, outDrawX, outDrawY, fgPaint)
-        if (scaledFg != foreground) scaledFg.recycle()
+        drawTransformedForeground(
+            canvas = canvas,
+            foreground = foreground,
+            frameWidth = frameWidth,
+            frameHeight = frameHeight,
+            outputWidth = outW,
+            outputHeight = outH,
+            scale = scale,
+            offsetX = offsetX,
+            offsetY = offsetY,
+        )
 
         return result
+    }
+
+    private fun drawTransformedForeground(
+        canvas: Canvas,
+        foreground: Bitmap,
+        frameWidth: Int,
+        frameHeight: Int,
+        outputWidth: Int,
+        outputHeight: Int,
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float,
+    ) {
+        if (frameWidth <= 0 || frameHeight <= 0 || outputWidth <= 0 || outputHeight <= 0) return
+
+        val offsetRatio = minOf(
+            outputWidth.toFloat() / frameWidth.toFloat(),
+            outputHeight.toFloat() / frameHeight.toFloat(),
+        )
+        val fitScale = minOf(
+            outputWidth.toFloat() / foreground.width.toFloat(),
+            outputHeight.toFloat() / foreground.height.toFloat(),
+        )
+        val totalScale = fitScale * scale
+
+        val destW = (foreground.width * totalScale).roundToInt().coerceAtLeast(1)
+        val destH = (foreground.height * totalScale).roundToInt().coerceAtLeast(1)
+        val outDrawX = (outputWidth - destW) / 2f + offsetX * offsetRatio
+        val outDrawY = outputHeight - destH + offsetY * offsetRatio
+
+        val scaledFg = highQualityScale(foreground, destW, destH)
+        val paint = Paint().apply {
+            isAntiAlias = true
+            isFilterBitmap = true
+            isDither = false
+        }
+
+        canvas.drawBitmap(scaledFg, outDrawX, outDrawY, paint)
+        if (scaledFg != foreground) scaledFg.recycle()
+    }
+
+    /**
+     * Remove white spill from semi-transparent hair/edge pixels after background removal.
+     * Segmentation keeps RGB from the original white background, so alpha blending those
+     * pixels onto blue/studio backgrounds can leave a pale halo.
+     */
+    fun decontaminateWhiteEdges(foreground: Bitmap): Bitmap {
+        if (!foreground.hasAlpha()) return foreground
+
+        val width = foreground.width
+        val height = foreground.height
+        val pixels = IntArray(width * height)
+        foreground.getPixels(pixels, 0, width, 0, 0, width, height)
+        val original = pixels.copyOf()
+
+        var changed = false
+        for (i in original.indices) {
+            val pixel = pixels[i]
+            val alpha = Color.alpha(pixel)
+            if (alpha == 0) continue
+
+            if (alpha <= 4) {
+                pixels[i] = 0
+                changed = true
+                continue
+            }
+
+            val x = i % width
+            val y = i / width
+
+            if (alpha == 255) {
+                val replacement = findDarkerEdgeNeighbor(original, width, height, x, y)
+                if (replacement != null) {
+                    val red = Color.red(pixel)
+                    val green = Color.green(pixel)
+                    val blue = Color.blue(pixel)
+                    val outRed = (red * 0.35f + Color.red(replacement) * 0.65f).roundToInt().coerceIn(0, 255)
+                    val outGreen = (green * 0.35f + Color.green(replacement) * 0.65f).roundToInt().coerceIn(0, 255)
+                    val outBlue = (blue * 0.35f + Color.blue(replacement) * 0.65f).roundToInt().coerceIn(0, 255)
+                    pixels[i] = Color.rgb(outRed, outGreen, outBlue)
+                    changed = true
+                }
+                continue
+            }
+
+            val a = alpha / 255f
+            val red = Color.red(pixel)
+            val green = Color.green(pixel)
+            val blue = Color.blue(pixel)
+
+            val cleanRed = ((red - 255f * (1f - a)) / a).roundToInt().coerceIn(0, 255)
+            val cleanGreen = ((green - 255f * (1f - a)) / a).roundToInt().coerceIn(0, 255)
+            val cleanBlue = ((blue - 255f * (1f - a)) / a).roundToInt().coerceIn(0, 255)
+            val strength = ((1f - a) * 0.9f).coerceIn(0f, 0.85f)
+
+            val outRed = (red + (cleanRed - red) * strength).roundToInt().coerceIn(0, 255)
+            val outGreen = (green + (cleanGreen - green) * strength).roundToInt().coerceIn(0, 255)
+            val outBlue = (blue + (cleanBlue - blue) * strength).roundToInt().coerceIn(0, 255)
+
+            val darkerNeighbor = findDarkerEdgeNeighbor(original, width, height, x, y)
+            if (darkerNeighbor != null && luminance(Color.rgb(outRed, outGreen, outBlue)) > luminance(darkerNeighbor) + 24f) {
+                pixels[i] = Color.argb(
+                    alpha,
+                    (outRed * 0.45f + Color.red(darkerNeighbor) * 0.55f).roundToInt().coerceIn(0, 255),
+                    (outGreen * 0.45f + Color.green(darkerNeighbor) * 0.55f).roundToInt().coerceIn(0, 255),
+                    (outBlue * 0.45f + Color.blue(darkerNeighbor) * 0.55f).roundToInt().coerceIn(0, 255),
+                )
+            } else {
+                pixels[i] = Color.argb(alpha, outRed, outGreen, outBlue)
+            }
+            changed = true
+        }
+
+        if (!changed) return foreground
+        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { result ->
+            result.setPixels(pixels, 0, width, 0, 0, width, height)
+        }
+    }
+
+    private fun findDarkerEdgeNeighbor(pixels: IntArray, width: Int, height: Int, x: Int, y: Int): Int? {
+        val center = pixels[y * width + x]
+        val centerLuma = luminance(center)
+        if (centerLuma < 95f) return null
+        if (!hasTransparentNeighbor(pixels, width, height, x, y)) return null
+
+        var best: Int? = null
+        var bestLuma = centerLuma
+        val minX = (x - 4).coerceAtLeast(0)
+        val maxX = (x + 4).coerceAtMost(width - 1)
+        val minY = (y - 4).coerceAtLeast(0)
+        val maxY = (y + 4).coerceAtMost(height - 1)
+
+        for (ny in minY..maxY) {
+            for (nx in minX..maxX) {
+                val candidate = pixels[ny * width + nx]
+                val alpha = Color.alpha(candidate)
+                if (alpha < 210) continue
+                val luma = luminance(candidate)
+                if (luma < bestLuma - 18f && chroma(candidate) > 14f) {
+                    best = candidate
+                    bestLuma = luma
+                }
+            }
+        }
+
+        return best
+    }
+
+    private fun hasTransparentNeighbor(pixels: IntArray, width: Int, height: Int, x: Int, y: Int): Boolean {
+        val minX = (x - 1).coerceAtLeast(0)
+        val maxX = (x + 1).coerceAtMost(width - 1)
+        val minY = (y - 1).coerceAtLeast(0)
+        val maxY = (y + 1).coerceAtMost(height - 1)
+        for (ny in minY..maxY) {
+            for (nx in minX..maxX) {
+                if (nx == x && ny == y) continue
+                if (Color.alpha(pixels[ny * width + nx]) < 160) return true
+            }
+        }
+        return false
+    }
+
+    private fun luminance(color: Int): Float {
+        return Color.red(color) * 0.299f + Color.green(color) * 0.587f + Color.blue(color) * 0.114f
+    }
+
+    private fun chroma(color: Int): Float {
+        val max = maxOf(Color.red(color), Color.green(color), Color.blue(color))
+        val min = minOf(Color.red(color), Color.green(color), Color.blue(color))
+        return (max - min).toFloat()
     }
 
     /**

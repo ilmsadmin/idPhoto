@@ -2,10 +2,16 @@ package com.idphoto.app.processing
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.graphics.PointF
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.math.atan2
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlin.coroutines.resume
 
 /**
  * MediaPipe FaceMesh — 468 landmark detector.
@@ -19,6 +25,16 @@ import kotlin.math.sqrt
  * 4. Crop vùng mặt + vai theo tỷ lệ ảnh thẻ chuẩn
  */
 class FaceMeshProcessor(private val context: Context) {
+
+    private val detector: FaceDetector by lazy {
+        FaceDetection.getClient(
+            FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                .build()
+        )
+    }
 
     companion object {
         // FaceMesh landmark indices
@@ -42,9 +58,10 @@ class FaceMeshProcessor(private val context: Context) {
 
         // ID Photo standards: face should be 70-80% of photo height (ICAO)
         private const val FACE_RATIO_IN_PHOTO = 0.72f
-        // Gentle auto-zoom ratio: face chiếm ~45% ảnh thẻ — crop nhẹ, giữ nhiều thân
-        // hơn so với chuẩn ICAO. User có thể pinch-zoom tiếp trong EditScreen.
-        private const val GENTLE_FACE_RATIO = 0.45f
+        // Passport framing ratio: face/head area chiếm vừa đủ để ra ảnh thẻ,
+        // không giữ toàn thân sau khi remove background.
+        private const val ID_PHOTO_FACE_RATIO = 0.48f
+        private const val BODY_BELOW_EYES_RATIO = 4.6f
         // Khoảng cách từ tâm mắt lên đỉnh đầu (bao gồm cả tóc) — tỉ lệ theo eyeDistance.
         // Thực tế đo: với người lớn ~1.6, trẻ em tóc dày có thể 1.8–2.0.
         // Chọn 1.9 để an toàn, tránh cắt tóc.
@@ -77,7 +94,7 @@ class FaceMeshProcessor(private val context: Context) {
      * Sử dụng ML Kit Face Detection landmarks (vì MediaPipe Tasks có thể
      * chưa stable trên tất cả devices). Fallback-safe.
      */
-    fun alignFace(bitmap: Bitmap): FaceAlignmentResult {
+    suspend fun alignFace(bitmap: Bitmap): FaceAlignmentResult {
         // Sử dụng ML Kit Face Detection để lấy landmarks
         // (đáng tin cậy hơn MediaPipe Tasks trên nhiều devices)
         return alignWithMLKitFace(bitmap)
@@ -86,108 +103,92 @@ class FaceMeshProcessor(private val context: Context) {
     /**
      * Align bằng ML Kit Face Detection — reliable, có sẵn trên mọi device.
      */
-    private fun alignWithMLKitFace(bitmap: Bitmap): FaceAlignmentResult {
-        // Sync detection using ML Kit
-        val detector = com.google.mlkit.vision.face.FaceDetection.getClient(
-            com.google.mlkit.vision.face.FaceDetectorOptions.Builder()
-                .setPerformanceMode(com.google.mlkit.vision.face.FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                .setLandmarkMode(com.google.mlkit.vision.face.FaceDetectorOptions.LANDMARK_MODE_ALL)
-                .setClassificationMode(com.google.mlkit.vision.face.FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-                .build()
-        )
+    private suspend fun alignWithMLKitFace(bitmap: Bitmap): FaceAlignmentResult {
+        val inputImage = InputImage.fromBitmap(bitmap, 0)
 
-        val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
+        return suspendCancellableCoroutine { cont ->
+            detector.process(inputImage)
+                .addOnSuccessListener { faces ->
+                    val fallback = FaceAlignmentResult(
+                        alignedBitmap = bitmap,
+                        faceCenter = PointF(bitmap.width / 2f, bitmap.height / 2f),
+                        eyeDistance = bitmap.width * 0.25f,
+                        rotationAngle = 0f,
+                        confidence = 0f,
+                    )
 
-        var result: FaceAlignmentResult? = null
-        val latch = java.util.concurrent.CountDownLatch(1)
+                    if (faces.isEmpty()) {
+                        if (cont.isActive) cont.resume(fallback)
+                        return@addOnSuccessListener
+                    }
 
-        // Background executor để ML Kit callback không dispatch lên Main
-        // (callback này làm nhiều math + xoay ảnh → không được block Main)
-        val bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
-
-        detector.process(inputImage)
-            .addOnSuccessListener(bgExecutor) { faces ->
-                if (faces.isNotEmpty()) {
                     val face = faces[0]
-                    val rotZ = face.headEulerAngleZ  // Roll angle
-
-                    // Get eye positions
                     val leftEye = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE)
                     val rightEye = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE)
+                    if (leftEye == null || rightEye == null) {
+                        if (cont.isActive) cont.resume(fallback)
+                        return@addOnSuccessListener
+                    }
 
-                    if (leftEye != null && rightEye != null) {
-                        val lp = leftEye.position
-                        val rp = rightEye.position
+                    val lp = leftEye.position
+                    val rp = rightEye.position
+                    val eyeDist = sqrt((rp.x - lp.x) * (rp.x - lp.x) + (rp.y - lp.y) * (rp.y - lp.y))
+                    val eyeCenter = PointF((lp.x + rp.x) / 2f, (lp.y + rp.y) / 2f)
 
-                        val eyeDist = sqrt(
-                            (rp.x - lp.x) * (rp.x - lp.x) + (rp.y - lp.y) * (rp.y - lp.y)
-                        )
+                    val angle = atan2((rp.y - lp.y).toDouble(), (rp.x - lp.x).toDouble()).toFloat() *
+                        (180f / Math.PI.toFloat())
 
-                        val eyeCenter = PointF(
-                            (lp.x + rp.x) / 2f,
-                            (lp.y + rp.y) / 2f
-                        )
+                    val aligned = if (kotlin.math.abs(angle) > 0.5f) {
+                        rotateImage(bitmap, -angle, eyeCenter)
+                    } else {
+                        bitmap
+                    }
 
-                        // Deskew: xoay ảnh cho 2 mắt nằm ngang
-                        val angle = atan2(
-                            (rp.y - lp.y).toDouble(),
-                            (rp.x - lp.x).toDouble()
-                        ).toFloat() * (180f / Math.PI.toFloat())
+                    val newCenterX: Float
+                    val newCenterY: Float
+                    if (kotlin.math.abs(angle) > 0.5f) {
+                        val rad = Math.toRadians((-angle).toDouble())
+                        val cos = kotlin.math.cos(rad).toFloat()
+                        val sin = kotlin.math.sin(rad).toFloat()
+                        val cx = bitmap.width / 2f
+                        val cy = bitmap.height / 2f
+                        val dx = eyeCenter.x - cx
+                        val dy = eyeCenter.y - cy
+                        val rx = dx * cos - dy * sin
+                        val ry = dx * sin + dy * cos
+                        newCenterX = rx + aligned.width / 2f
+                        newCenterY = ry + aligned.height / 2f
+                    } else {
+                        newCenterX = eyeCenter.x
+                        newCenterY = eyeCenter.y
+                    }
 
-                        val aligned = if (kotlin.math.abs(angle) > 0.5f) {
-                            rotateImage(bitmap, -angle, eyeCenter)
-                        } else {
-                            bitmap
-                        }
-
-                        // Tính lại faceCenter trên ảnh đã xoay (canvas mở rộng)
-                        val newCenterX: Float
-                        val newCenterY: Float
-                        if (kotlin.math.abs(angle) > 0.5f) {
-                            // Ảnh đã xoay quanh tâm bitmap gốc → tâm mới offset
-                            val rad = Math.toRadians((-angle).toDouble())
-                            val cos = kotlin.math.cos(rad).toFloat()
-                            val sin = kotlin.math.sin(rad).toFloat()
-                            val cx = bitmap.width / 2f
-                            val cy = bitmap.height / 2f
-                            // Xoay điểm faceCenter quanh tâm gốc
-                            val dx = eyeCenter.x - cx
-                            val dy = eyeCenter.y - cy
-                            val rx = dx * cos - dy * sin
-                            val ry = dx * sin + dy * cos
-                            newCenterX = rx + aligned.width / 2f
-                            newCenterY = ry + aligned.height / 2f
-                        } else {
-                            newCenterX = eyeCenter.x
-                            newCenterY = eyeCenter.y
-                        }
-
-                        result = FaceAlignmentResult(
-                            alignedBitmap = aligned,
-                            faceCenter = PointF(newCenterX, newCenterY),
-                            eyeDistance = eyeDist,
-                            rotationAngle = angle,
-                            confidence = face.trackingId?.toFloat()?.let { 1.0f } ?: 0.9f,
+                    if (cont.isActive) {
+                        cont.resume(
+                            FaceAlignmentResult(
+                                alignedBitmap = aligned,
+                                faceCenter = PointF(newCenterX, newCenterY),
+                                eyeDistance = eyeDist,
+                                rotationAngle = angle,
+                                confidence = face.trackingId?.toFloat()?.let { 1.0f } ?: 0.9f,
+                            )
                         )
                     }
                 }
-                latch.countDown()
-            }
-            .addOnFailureListener(bgExecutor) {
-                latch.countDown()
-            }
-
-        latch.await(3, java.util.concurrent.TimeUnit.SECONDS)
-        detector.close()
-        bgExecutor.shutdown()
-
-        return result ?: FaceAlignmentResult(
-            alignedBitmap = bitmap,
-            faceCenter = PointF(bitmap.width / 2f, bitmap.height / 2f),
-            eyeDistance = bitmap.width * 0.25f,
-            rotationAngle = 0f,
-            confidence = 0f,
-        )
+                .addOnFailureListener {
+                    if (cont.isActive) {
+                        cont.resume(
+                            FaceAlignmentResult(
+                                alignedBitmap = bitmap,
+                                faceCenter = PointF(bitmap.width / 2f, bitmap.height / 2f),
+                                eyeDistance = bitmap.width * 0.25f,
+                                rotationAngle = 0f,
+                                confidence = 0f,
+                            )
+                        )
+                    }
+                }
+        }
     }
 
     /**
@@ -205,15 +206,17 @@ class FaceMeshProcessor(private val context: Context) {
         val newH = (w * sin + h * cos).toInt()
 
         val result = Bitmap.createBitmap(newW, newH, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(result)
-
-        // Dịch tâm canvas rồi xoay
-        canvas.translate(newW / 2f, newH / 2f)
-        canvas.rotate(degrees)
-        canvas.translate(-w / 2f, -h / 2f)
-        canvas.drawBitmap(bitmap, 0f, 0f, null)
-
-        return result
+        return try {
+            val canvas = android.graphics.Canvas(result)
+            canvas.translate(newW / 2f, newH / 2f)
+            canvas.rotate(degrees)
+            canvas.translate(-w / 2f, -h / 2f)
+            canvas.drawBitmap(bitmap, 0f, 0f, null)
+            result
+        } catch (e: Exception) {
+            result.recycle()
+            throw e
+        }
     }
 
     /**
@@ -223,33 +226,34 @@ class FaceMeshProcessor(private val context: Context) {
      * Nếu ta crop theo `h` (đáy bitmap gốc), thân sẽ bị cách đáy khung.
      * → Crop theo đáy thực của subject để thân sát bottom border.
      *
-     * Nếu bitmap không có alpha hoặc alpha đầy (đã composite lên nền) → trả về height.
+        * Trả về tọa độ bottom dạng exclusive, dùng trực tiếp được với Bitmap.createBitmap.
+        * Nếu bitmap không có alpha hoặc alpha đầy (đã composite lên nền) → trả về height.
      */
     private fun findSubjectBottom(bitmap: Bitmap): Int {
         val w = bitmap.width
         val h = bitmap.height
         if (!bitmap.hasAlpha()) return h
 
-        val alphaThreshold = 16  // pixel có alpha > 16/255 mới tính là subject
-        // Sample mỗi 2 pixel theo chiều ngang để nhanh hơn
+            val alphaThreshold = 32
         val step = kotlin.math.max(1, w / 200)
-        val rowBuffer = IntArray(w)
+            val sampledColumns = ((w + step - 1) / step).coerceAtLeast(1)
+            val minPixelsInRow = kotlin.math.max(4, sampledColumns / 60)
+        val pixels = IntArray(w * h)
 
-        // Quét từ dòng cuối lên
+        try {
+            bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+        } catch (_: Exception) {
+            return h
+        }
+
         for (y in h - 1 downTo 0) {
-            try {
-                bitmap.getPixels(rowBuffer, 0, w, 0, y, w, 1)
-            } catch (e: Exception) {
-                return h
-            }
             var count = 0
             var x = 0
             while (x < w) {
-                val alpha = (rowBuffer[x] ushr 24) and 0xFF
+                val alpha = (pixels[y * w + x] ushr 24) and 0xFF
                 if (alpha > alphaThreshold) {
                     count++
-                    // Cần ≥ 3 pixel liên tiếp trong mẫu để tránh noise
-                    if (count >= 3) return (y + 2).coerceAtMost(h - 1)
+                    if (count >= minPixelsInRow) return (y + 1).coerceIn(1, h)
                 }
                 x += step
             }
@@ -257,15 +261,18 @@ class FaceMeshProcessor(private val context: Context) {
         return h
     }
 
+    fun close() {
+        detector.close()
+    }
+
     /**
      * Tính crop rect chuẩn ảnh thẻ dựa trên vị trí khuôn mặt — KHÔNG scale.
      *
      * Chiến lược crop (gentle + bottom-anchored):
      * 1. Ước tính đỉnh đầu = faceCenter.y − eyeDistance × 1.9 (bao gồm tóc).
-     * 2. Chiều cao mong muốn = eyeDistance × 2.8 / 0.45 (mặt ~45% khung, zoom nhẹ).
-     * 3. **Đáy crop LUÔN = đáy bitmap** (thân sát viền dưới, cắt song song đáy, không xéo).
-     * 4. Nếu chiều cao mong muốn khiến top < 0 hoặc cắt vào tóc → mở rộng targetHeight
-     *    sao cho top = topOfHead − margin. Chiều rộng tính lại theo aspectRatio.
+        * 2. Chiều cao mong muốn = eyeDistance × 2.8 / ratio ảnh thẻ.
+        * 3. Đáy crop nằm ở thân trên, không phải đáy toàn thân sau khi remove background.
+        * 4. Nếu chiều cao mong muốn cắt vào tóc → mở rộng lên trên để giữ khoảng trống đầu.
      * 5. Nếu vẫn không đủ không gian → clamp top = 0 (ưu tiên không cắt đầu hơn thân).
      */
     fun computeIdPhotoCropRect(
@@ -283,20 +290,21 @@ class FaceMeshProcessor(private val context: Context) {
         // Đỉnh đầu ước tính (đã tính tóc)
         val topOfHead = (faceCY - eyeDist * EYES_TO_TOP_OF_HEAD_RATIO).coerceAtLeast(0f)
 
-        // Chiều cao mong muốn (gentle zoom)
+        // Chiều cao mong muốn cho ảnh thẻ: lấy thân trên, không lấy toàn thân.
         val faceHeight = eyeDist * 2.8f
-        val desiredHeight = faceHeight / GENTLE_FACE_RATIO
+        val desiredHeight = faceHeight / ID_PHOTO_FACE_RATIO
 
-        // ── BƯỚC 1: Đáy crop = đáy THỰC của subject (người) ──
-        // Scan alpha từ dưới lên để tìm dòng pixel cuối cùng có nội dung (không trong suốt).
-        // Nếu ảnh không có alpha (đã replace BG), fallback = h.
-        // Cắt NGANG, song song với đáy ảnh, và sát thân người.
-        val cropBottom = findSubjectBottom(bitmap).toFloat()
+        // ── BƯỚC 1: Đáy crop = thân trên theo chuẩn ảnh thẻ ──
+        // Nếu dùng đáy subject thật, ảnh full-body sẽ bị thu nhỏ toàn thân trong khung.
+        // Vì vậy crop ngang qua phần thân trên để vai/ngực chạm đáy như ảnh thẻ.
+        val subjectBottom = findSubjectBottom(bitmap).toFloat()
+        val passportBottom = faceCY + eyeDist * BODY_BELOW_EYES_RATIO
+        val cropBottom = passportBottom.coerceIn(1f, minOf(subjectBottom, h))
 
         // ── BƯỚC 2: Xác định cropTop ──
         // Yêu cầu: top ≤ topOfHead − margin (để có khoảng trống phía trên đầu)
         //          top ≥ 0 (trong ảnh)
-        // Ưu tiên: không cắt đầu > đủ chiều cao "zoom nhẹ"
+        // Ưu tiên: không cắt đầu > đúng zoom ảnh thẻ
         val marginAboveHead = desiredHeight * HEAD_TOP_MARGIN
         val requiredTop = (topOfHead - marginAboveHead).coerceAtLeast(0f)
         val gentleTop = (cropBottom - desiredHeight).coerceAtLeast(0f)
@@ -328,10 +336,12 @@ class FaceMeshProcessor(private val context: Context) {
         if (cropLeft < 0f) cropLeft = 0f
         if (cropLeft + cropWidth > w) cropLeft = w - cropWidth
 
-        val left = cropLeft.toInt().coerceAtLeast(0)
-        val top = cropTop.toInt().coerceAtLeast(0)
-        val right = (left + cropWidth.toInt()).coerceAtMost(bitmap.width)
-        val bottom = (top + cropHeight.toInt()).coerceAtMost(bitmap.height)
+        val bottom = cropBottom.roundToInt().coerceIn(1, bitmap.height)
+        val height = cropHeight.roundToInt().coerceIn(1, bottom)
+        val width = (height * targetSize.aspectRatio).roundToInt().coerceIn(1, bitmap.width)
+        val top = (bottom - height).coerceAtLeast(0)
+        val left = cropLeft.roundToInt().coerceIn(0, bitmap.width - width)
+        val right = (left + width).coerceAtMost(bitmap.width)
 
         return android.graphics.Rect(left, top, right, bottom)
     }

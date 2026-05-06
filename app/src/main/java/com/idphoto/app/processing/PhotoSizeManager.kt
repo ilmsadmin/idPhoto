@@ -33,8 +33,8 @@ data class PhotoSize(
  */
 object PhotoSizeManager {
 
-    // Note: These descriptions are Vietnamese by default. They should be localized based on app language.
-    // For now, using Vietnamese as the default language.
+    // Note: These descriptions are keyed by default Vietnamese/English descriptions from data class.
+    // Actual display descriptions should be retrieved from Strings.photoSizeDescriptions based on app language.
     val standardSizes = listOf(
         // Việt Nam
         PhotoSize("2x3 cm", 20f, 30f, "Visa, CMND cũ", 236, 354, "VN"),
@@ -77,8 +77,8 @@ object PhotoSizeManager {
         PhotoSize("3.5x4.5 cm", 35f, 45f, "Australia Passport", 413, 531, "AU"),
     )
 
-    // Note: These country names are Vietnamese by default. They should be localized based on app language.
-    // For now, using Vietnamese as the default language.
+    // Note: These country names are keyed by country code.
+    // Actual display names should be retrieved from Strings.countryNamesByCode based on app language.
     val countries = listOf(
         CountryTab("VN", "Việt Nam"),
         CountryTab("US", "Mỹ / US"),

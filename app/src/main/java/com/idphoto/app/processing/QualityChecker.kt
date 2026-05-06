@@ -6,7 +6,6 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.face.FaceLandmark
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.CountDownLatch
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
@@ -27,6 +26,34 @@ import kotlin.math.abs
  */
 class QualityChecker {
 
+    private var accurateDetector: com.google.mlkit.vision.face.FaceDetector? = null
+    private var fastDetector: com.google.mlkit.vision.face.FaceDetector? = null
+
+    private fun getAccurateDetector(): com.google.mlkit.vision.face.FaceDetector {
+        val cached = accurateDetector
+        if (cached != null) return cached
+        return FaceDetection.getClient(
+            FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                .setMinFaceSize(0.15f)
+                .build()
+        ).also { accurateDetector = it }
+    }
+
+    private fun getFastDetector(): com.google.mlkit.vision.face.FaceDetector {
+        val cached = fastDetector
+        if (cached != null) return cached
+        return FaceDetection.getClient(
+            FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                .setMinFaceSize(0.2f)
+                .build()
+        ).also { fastDetector = it }
+    }
+
     data class QualityResult(
         val isAcceptable: Boolean,
         val score: Float,             // 0..1 overall quality
@@ -42,8 +69,7 @@ class QualityChecker {
     data class QualityIssue(
         val type: IssueType,
         val severity: Severity,
-        val messageVi: String,
-        val messageEn: String,
+        val message: String,
     )
 
     enum class IssueType {
@@ -71,18 +97,9 @@ class QualityChecker {
      */
     suspend fun checkQuality(bitmap: Bitmap): QualityResult {
         return suspendCancellableCoroutine { cont ->
-            val detector = FaceDetection.getClient(
-                FaceDetectorOptions.Builder()
-                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-                    .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-                    .setMinFaceSize(0.15f)
-                    .build()
-            )
-
             val inputImage = InputImage.fromBitmap(bitmap, 0)
 
-            detector.process(inputImage)
+            getAccurateDetector().process(inputImage)
                 .addOnSuccessListener { faces ->
                     val issues = mutableListOf<QualityIssue>()
 
@@ -90,22 +107,23 @@ class QualityChecker {
                     if (faces.isEmpty()) {
                         issues.add(QualityIssue(
                             IssueType.NO_FACE, Severity.ERROR,
-                            "Không phát hiện khuôn mặt", "No face detected"
+                            "No face detected"
                         ))
-                        cont.resume(QualityResult(
-                            isAcceptable = false, score = 0f, issues = issues,
-                            faceDetected = false, faceCentered = false,
-                            eyesOpen = false, faceStraight = false,
-                            goodLighting = false, notBlurry = true,
-                        ))
-                        detector.close()
+                        if (cont.isActive) {
+                            cont.resume(QualityResult(
+                                isAcceptable = false, score = 0f, issues = issues,
+                                faceDetected = false, faceCentered = false,
+                                eyesOpen = false, faceStraight = false,
+                                goodLighting = false, notBlurry = true,
+                            ))
+                        }
                         return@addOnSuccessListener
                     }
 
                     if (faces.size > 1) {
                         issues.add(QualityIssue(
                             IssueType.MULTIPLE_FACES, Severity.WARNING,
-                            "Phát hiện nhiều khuôn mặt", "Multiple faces detected"
+                            "Multiple faces detected"
                         ))
                     }
 
@@ -124,7 +142,7 @@ class QualityChecker {
                     if (!faceCentered) {
                         issues.add(QualityIssue(
                             IssueType.FACE_NOT_CENTERED, Severity.WARNING,
-                            "Khuôn mặt chưa ở giữa ảnh", "Face is not centered"
+                            "Face is not centered"
                         ))
                     }
 
@@ -133,12 +151,12 @@ class QualityChecker {
                     if (faceRatio < 0.25f) {
                         issues.add(QualityIssue(
                             IssueType.FACE_TOO_SMALL, Severity.WARNING,
-                            "Khuôn mặt quá nhỏ, hãy lại gần hơn", "Face too small, move closer"
+                            "Face too small, move closer"
                         ))
                     } else if (faceRatio > 0.85f) {
                         issues.add(QualityIssue(
                             IssueType.FACE_TOO_LARGE, Severity.WARNING,
-                            "Khuôn mặt quá lớn, hãy lùi ra", "Face too large, move back"
+                            "Face too large, move back"
                         ))
                     }
 
@@ -150,7 +168,7 @@ class QualityChecker {
                     if (!eyesOpen) {
                         issues.add(QualityIssue(
                             IssueType.EYES_CLOSED, Severity.ERROR,
-                            "Mắt đang nhắm, hãy mở mắt", "Eyes are closed, please open your eyes"
+                            "Eyes are closed, please open your eyes"
                         ))
                     }
 
@@ -164,13 +182,13 @@ class QualityChecker {
                     if (abs(yaw) >= 15f) {
                         issues.add(QualityIssue(
                             IssueType.FACE_ROTATED, Severity.WARNING,
-                            "Hãy nhìn thẳng vào camera", "Please look straight at the camera"
+                            "Please look straight at the camera"
                         ))
                     }
                     if (abs(roll) >= 10f) {
                         issues.add(QualityIssue(
                             IssueType.FACE_TILTED, Severity.WARNING,
-                            "Hãy giữ đầu thẳng", "Please keep your head straight"
+                            "Please keep your head straight"
                         ))
                     }
 
@@ -179,7 +197,7 @@ class QualityChecker {
                     if (smilingProb > 0.7f) {
                         issues.add(QualityIssue(
                             IssueType.SMILING_TOO_MUCH, Severity.INFO,
-                            "Ảnh thẻ nên có biểu cảm tự nhiên", "ID photos should have a neutral expression"
+                            "ID photos should have a neutral expression"
                         ))
                     }
 
@@ -188,7 +206,7 @@ class QualityChecker {
                     if (!goodLighting) {
                         issues.add(QualityIssue(
                             IssueType.LOW_LIGHT, Severity.WARNING,
-                            "Ánh sáng yếu, hãy chụp ở nơi sáng hơn", "Low light, please move to a brighter area"
+                            "Low light, please move to a brighter area"
                         ))
                     }
 
@@ -197,7 +215,7 @@ class QualityChecker {
                     if (!notBlurry) {
                         issues.add(QualityIssue(
                             IssueType.BLURRY, Severity.WARNING,
-                            "Ảnh bị mờ, giữ yên điện thoại", "Photo is blurry, hold the phone steady"
+                            "Photo is blurry, hold the phone steady"
                         ))
                     }
 
@@ -207,22 +225,22 @@ class QualityChecker {
                     val score = (1f - errorCount * 0.3f - warnCount * 0.1f).coerceIn(0f, 1f)
                     val acceptable = errorCount == 0
 
-                    cont.resume(QualityResult(
-                        isAcceptable = acceptable,
-                        score = score,
-                        issues = issues,
-                        faceDetected = true,
-                        faceCentered = faceCentered,
-                        eyesOpen = eyesOpen,
-                        faceStraight = faceStraight,
-                        goodLighting = goodLighting,
-                        notBlurry = notBlurry,
-                    ))
-                    detector.close()
+                    if (cont.isActive) {
+                        cont.resume(QualityResult(
+                            isAcceptable = acceptable,
+                            score = score,
+                            issues = issues,
+                            faceDetected = true,
+                            faceCentered = faceCentered,
+                            eyesOpen = eyesOpen,
+                            faceStraight = faceStraight,
+                            goodLighting = goodLighting,
+                            notBlurry = notBlurry,
+                        ))
+                    }
                 }
                 .addOnFailureListener { e ->
-                    cont.resumeWithException(e)
-                    detector.close()
+                    if (cont.isActive) cont.resumeWithException(e)
                 }
         }
     }
@@ -236,16 +254,8 @@ class QualityChecker {
         val lightingOk = quickCheckBrightness(bitmap)
         val backgroundOk = quickCheckBackground(bitmap)
 
-        val detector = FaceDetection.getClient(
-            FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-                .setMinFaceSize(0.2f)
-                .build()
-        )
-
         val inputImage = InputImage.fromBitmap(bitmap, 0)
-        detector.process(inputImage)
+        getFastDetector().process(inputImage)
             .addOnSuccessListener { faces ->
                 if (faces.isEmpty()) {
                     callback(QuickCheckResult(
@@ -254,7 +264,7 @@ class QualityChecker {
                         eyesOpen = false,
                         goodLighting = lightingOk,
                         goodBackground = backgroundOk,
-                        hint = "Không thấy khuôn mặt",
+                        hint = "No face detected",
                     ))
                 } else {
                     val face = faces[0]
@@ -262,11 +272,11 @@ class QualityChecker {
                     val eyesOk = (face.leftEyeOpenProbability ?: 1f) > 0.3f &&
                                  (face.rightEyeOpenProbability ?: 1f) > 0.3f
                     val hint = when {
-                        !lightingOk -> "Cần thêm ánh sáng"
-                        !straight -> "Giữ thẳng mặt"
-                        !eyesOk -> "Mở mắt"
-                        !backgroundOk -> "Nền chưa đồng nhất"
-                        else -> "Tốt! Nhấn chụp"
+                        !lightingOk -> "Need more light"
+                        !straight -> "Look straight"
+                        !eyesOk -> "Open your eyes"
+                        !backgroundOk -> "Background not uniform"
+                        else -> "Good! Tap to capture"
                     }
                     callback(QuickCheckResult(
                         faceDetected = true,
@@ -277,7 +287,6 @@ class QualityChecker {
                         hint = hint,
                     ))
                 }
-                detector.close()
             }
             .addOnFailureListener {
                 callback(QuickCheckResult(
@@ -286,10 +295,16 @@ class QualityChecker {
                     eyesOpen = false,
                     goodLighting = lightingOk,
                     goodBackground = backgroundOk,
-                    hint = "Lỗi nhận diện",
+                    hint = "Detection error",
                 ))
-                detector.close()
             }
+    }
+
+    fun close() {
+        accurateDetector?.close()
+        fastDetector?.close()
+        accurateDetector = null
+        fastDetector = null
     }
 
     data class QuickCheckResult(

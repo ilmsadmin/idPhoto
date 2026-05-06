@@ -48,13 +48,13 @@ class MLKitSegmenter {
                         val maskHeight = segmentationMask.height
 
                         val result = applyRefinedMask(bitmap, mask, maskWidth, maskHeight)
-                        cont.resume(result)
+                        if (cont.isActive) cont.resume(result)
                     } catch (e: Exception) {
-                        cont.resumeWithException(e)
+                        if (cont.isActive) cont.resumeWithException(e)
                     }
                 }
                 .addOnFailureListener(callbackExecutor) { e ->
-                    cont.resumeWithException(e)
+                    if (cont.isActive) cont.resumeWithException(e)
                 }
         }
     }
@@ -93,7 +93,7 @@ class MLKitSegmenter {
     }
 
     fun close() {
-        segmenter.close()
         callbackExecutor.shutdown()
+        segmenter.close()
     }
 }

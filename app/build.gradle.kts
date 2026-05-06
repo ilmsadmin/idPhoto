@@ -8,12 +8,22 @@ android {
     namespace = "com.idphoto.app"
     compileSdk = 35
 
+    val releaseStoreFile = providers.gradleProperty("RELEASE_STORE_FILE").orNull
+        ?: System.getenv("RELEASE_STORE_FILE")
+        ?: "idPhoto.jks"
+    val releaseStorePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+        ?: System.getenv("RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
+        ?: System.getenv("RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
+        ?: System.getenv("RELEASE_KEY_PASSWORD")
+
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file("idPhoto.jks")
-            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
-            keyAlias = project.property("RELEASE_KEY_ALIAS") as String
-            keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
+            storeFile = rootProject.file(releaseStoreFile)
+            storePassword = releaseStorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
         }
     }
 
@@ -39,15 +49,17 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (!releaseStorePassword.isNullOrBlank() &&
+                !releaseKeyAlias.isNullOrBlank() &&
+                !releaseKeyPassword.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-        debug {
-            signingConfig = signingConfigs.getByName("release")
-        }
+        debug {}
     }
 
     compileOptions {
