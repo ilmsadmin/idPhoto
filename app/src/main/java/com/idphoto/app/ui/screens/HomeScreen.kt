@@ -1,5 +1,6 @@
 package com.idphoto.app.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,9 +23,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idphoto.app.R
 import com.idphoto.app.processing.PhotoSize
 import com.idphoto.app.processing.PhotoSizeManager
 import com.idphoto.app.ui.LocalLanguage
@@ -176,16 +180,20 @@ private fun HomeTopBar(
                 modifier = Modifier
                     .size(38.dp)
                     .shadow(10.dp, RoundedCornerShape(12.dp), clip = false)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.primaryGradient),
+                    .clip(RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Filled.Badge, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                Image(
+                    painter = painterResource(id = R.drawable.app_icon_new),
+                    contentDescription = strings.appName,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
             }
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(
-                    strings.brandName,
+                    strings.appName,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = colors.onSurface,
@@ -223,8 +231,8 @@ private fun GreetingRow() {
         TonalChip(
             text = strings.onDeviceLabel,
             icon = Icons.Filled.VerifiedUser,
-            background = if (colors.isDark) Color(0x4700C9A7) else Color(0x2400C9A7),
-            contentColor = if (colors.isDark) Color(0xFF7FF0CE) else Color(0xFF00533B),
+            background = if (colors.isDark) Color(0x4463CEC5) else Color(0x33CDEEEA),
+            contentColor = if (colors.isDark) Color(0xFF9EEDE5) else Color(0xFF0E625B),
         )
     }
 }
@@ -268,9 +276,9 @@ private fun HeroCta(onClick: () -> Unit) {
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF2A3CDE),
-                        Color(0xFF5B3DFE),
-                        Color(0xFF9C27FF),
+                        Color(0xFF54BDB4),
+                        Color(0xFFFF705D),
+                        Color(0xFFFFC857),
                     )
                 )
             )
@@ -346,10 +354,13 @@ private fun HeroCta(onClick: () -> Unit) {
 @Composable
 private fun FeatureStrip() {
     val strings = LocalStrings.current
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FeatureItem(Icons.Filled.AutoAwesome, strings.bgRemovalTitle, strings.bgRemovalTech, modifier = Modifier.weight(1f))
-        FeatureItem(Icons.Filled.FaceRetouchingNatural, strings.faceAlignmentTitle, strings.faceAlignmentTech, modifier = Modifier.weight(1f))
-        FeatureItem(Icons.Filled.Lock, strings.privacyTitle, strings.privacyTech, modifier = Modifier.weight(1f))
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.height(IntrinsicSize.Max),
+    ) {
+        FeatureItem(Icons.Filled.AutoAwesome, strings.bgRemovalTitle, strings.bgRemovalTech, modifier = Modifier.weight(1f).fillMaxHeight())
+        FeatureItem(Icons.Filled.FaceRetouchingNatural, strings.faceAlignmentTitle, strings.faceAlignmentTech, modifier = Modifier.weight(1f).fillMaxHeight())
+        FeatureItem(Icons.Filled.Lock, strings.privacyTitle, strings.privacyTech, modifier = Modifier.weight(1f).fillMaxHeight())
     }
 }
 
@@ -476,8 +487,8 @@ private fun SizeCard(
         Modifier.background(
             Brush.linearGradient(
                 listOf(
-                    if (colors.isDark) Color(0x308B6DFF) else Color(0xFFEEEAFF),
-                    if (colors.isDark) Color(0x30FF7A59) else Color(0xFFFFE7D7),
+                    if (colors.isDark) Color(0x3063CEC5) else Color(0xFFE7F7F4),
+                    if (colors.isDark) Color(0x30FF705D) else Color(0xFFFFE4DC),
                 )
             )
         )
@@ -545,16 +556,16 @@ private fun TipCard() {
     val colors = LocalAppColors.current
     val strings = LocalStrings.current
     val bg = if (colors.isDark) {
-        Brush.linearGradient(listOf(Color(0x40FF7A59), Color(0x40FF3366)))
+        Brush.linearGradient(listOf(Color(0x40FF705D), Color(0x40FFD66B)))
     } else {
-        Brush.linearGradient(listOf(Color(0xFFFFF5E6), Color(0xFFFFE7EF)))
+        Brush.linearGradient(listOf(Color(0xFFFFF5E0), Color(0xFFFFE4DC)))
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(bg)
-            .border(1.dp, Color(0xFFFF7A59).copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+            .border(1.dp, Color(0xFFFF705D).copy(alpha = 0.2f), RoundedCornerShape(20.dp))
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

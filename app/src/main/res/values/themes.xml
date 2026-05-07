@@ -3,7 +3,11 @@
     <style name="Theme.IDPhoto" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Splash Screen API — transparent -->
         <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/splash_transparent_icon</item>
         <!-- Transparent window background -->
         <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowDisablePreview">true</item>
     </style>
 </resources>

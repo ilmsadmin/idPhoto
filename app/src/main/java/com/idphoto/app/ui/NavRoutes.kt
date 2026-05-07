@@ -5,6 +5,7 @@ package com.idphoto.app.ui
  */
 object NavRoutes {
     const val SPLASH = "splash"
+    const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val SIZES = "sizes"
     const val CAMERA = "camera"

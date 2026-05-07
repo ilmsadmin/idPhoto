@@ -5,10 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
-import android.util.Size as AndroidSize
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -64,7 +61,6 @@ import com.idphoto.app.processing.QualityChecker
 import com.idphoto.app.ui.LocalStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -89,44 +85,6 @@ private data class LiveQualityState(
     val goodBackground: Boolean = false,
     val hint: String = "",
 )
-
-/**
- * Load thumbnail of the latest photo from the device gallery.
- * Returns null if no photos found or permission not granted.
- */
-private suspend fun loadLatestGalleryThumbnail(context: Context): Bitmap? = withContext(Dispatchers.IO) {
-    try {
-        val uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
-            MediaStore.Images.Media._ID,
-        )
-        val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
-
-        context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                val imageId = cursor.getLong(idColumn)
-                val imageUri = android.content.ContentUris.withAppendedId(uri, imageId)
-
-                // Load thumbnail
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    context.contentResolver.loadThumbnail(imageUri, AndroidSize(128, 128), null)
-                } else {
-                    @Suppress("DEPRECATION")
-                    MediaStore.Images.Thumbnails.getThumbnail(
-                        context.contentResolver,
-                        imageId,
-                        MediaStore.Images.Thumbnails.MINI_KIND,
-                        null,
-                    )
-                }
-            } else null
-        }
-    } catch (e: Exception) {
-        Log.w("CameraScreen", "Failed to load gallery thumbnail", e)
-        null
-    }
-}
 
 @Composable
 fun CameraScreen(
@@ -165,12 +123,6 @@ fun CameraScreen(
     val capturedPhotos = remember { mutableStateListOf<Bitmap>() }
     val photosScrollState = rememberScrollState()
 
-    // Latest gallery photo thumbnail
-    var galleryThumbnail by remember { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(Unit) {
-        galleryThumbnail = loadLatestGalleryThumbnail(context)
-    }
-
     // Auto-scroll photo strip to the end when a new photo is captured
     LaunchedEffect(capturedPhotos.size) {
         if (capturedPhotos.isNotEmpty()) {
@@ -185,7 +137,6 @@ fun CameraScreen(
             runCatching { cameraProviderFuture.get().unbindAll() }
             analysisExecutor.shutdown()
             qualityChecker.close()
-            galleryThumbnail?.recycle()
             capturedPhotos.forEach { if (!it.isRecycled) it.recycle() }
             capturedPhotos.clear()
         }
@@ -412,38 +363,20 @@ fun CameraScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                // Gallery button — show latest photo thumbnail
+                // Gallery button
                 Surface(
                     onClick = onGalleryClick,
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White.copy(alpha = 0.12f),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .then(
-                            if (galleryThumbnail != null)
-                                Modifier.border(1.5.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                            else Modifier
-                        ),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        val thumb = galleryThumbnail
-                        if (thumb != null) {
-                            Image(
-                                bitmap = thumb.asImageBitmap(),
-                                contentDescription = strings.btnGallery,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(12.dp)),
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = strings.btnGallery,
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = strings.btnGallery,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 }
 

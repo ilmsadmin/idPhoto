@@ -67,6 +67,8 @@ data class AppUiState(
     val photoDpi: Int = 300,
     val outputFormat: String = "JPEG",
     val watermarkEnabled: Boolean = false,
+    val onboardingCompleted: Boolean = false,
+    val settingsLoaded: Boolean = false,
 
     // Language sheet
     val showLanguageSheet: Boolean = false,
@@ -107,13 +109,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     photoDpi = saved.photoDpi,
                     outputFormat = saved.outputFormat,
                     watermarkEnabled = saved.watermarkEnabled,
+                    onboardingCompleted = saved.onboardingCompleted,
                     paperSize = saved.paperSize,
                     cutLinesEnabled = saved.cutLinesEnabled,
+                    settingsLoaded = true,
                 )
             } catch (_: Exception) {
-                // Use defaults if DataStore fails
+                _uiState.value = _uiState.value.copy(settingsLoaded = true)
             }
         }
+    }
+
+    fun completeOnboarding() {
+        _uiState.value = _uiState.value.copy(onboardingCompleted = true)
+        viewModelScope.launch { settingsStore.setOnboardingCompleted(true) }
     }
 
     // ─── Language ──────────────────────────────────

@@ -91,9 +91,38 @@ fun NewMainScreen(
             ) {
                 NavHost(
                     navController = navController,
-                    startDestination = NavRoutes.HOME,
+                    startDestination = NavRoutes.SPLASH,
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    // ── Splash ──
+                    composable(NavRoutes.SPLASH) {
+                        SplashScreen(
+                            settingsLoaded = uiState.settingsLoaded,
+                            onNavigateNext = {
+                                val destination = if (uiState.onboardingCompleted) {
+                                    NavRoutes.HOME
+                                } else {
+                                    NavRoutes.ONBOARDING
+                                }
+                                navController.navigate(destination) {
+                                    popUpTo(NavRoutes.SPLASH) { inclusive = true }
+                                }
+                            },
+                        )
+                    }
+
+                    // ── Onboarding ──
+                    composable(NavRoutes.ONBOARDING) {
+                        OnboardingScreen(
+                            onFinished = {
+                                viewModel.completeOnboarding()
+                                navController.navigate(NavRoutes.HOME) {
+                                    popUpTo(NavRoutes.ONBOARDING) { inclusive = true }
+                                }
+                            },
+                        )
+                    }
+
                     // ── Home ──
                     composable(NavRoutes.HOME) {
                         HomeScreen(

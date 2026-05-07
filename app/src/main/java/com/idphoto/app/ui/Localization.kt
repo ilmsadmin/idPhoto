@@ -27,6 +27,19 @@ enum class AppLanguage(val code: String, val label: String, val nativeName: Stri
     }
 }
 
+data class OnboardingStrings(
+    val onboardingTitle: String,
+    val onboardingSubtitle: String,
+    val onboardingCaptureTitle: String,
+    val onboardingCaptureDescription: String,
+    val onboardingAiTitle: String,
+    val onboardingAiDescription: String,
+    val onboardingExportTitle: String,
+    val onboardingExportDescription: String,
+    val onboardingPrimaryAction: String,
+    val onboardingSecondaryAction: String,
+)
+
 data class Strings(
     // Splash
     val splashSub: String,
@@ -2240,4 +2253,67 @@ fun getStrings(language: AppLanguage): Strings = when (language) {
     AppLanguage.JA -> JaStrings
     AppLanguage.ZH -> ZhStrings
     AppLanguage.KR -> KrStrings
+}
+
+fun getOnboardingStrings(language: AppLanguage): OnboardingStrings = when (language) {
+    AppLanguage.VI -> OnboardingStrings(
+        onboardingTitle = "Ảnh thẻ sáng rõ trong vài bước",
+        onboardingSubtitle = "Tone aqua, coral và vàng ấm giúp trải nghiệm chụp ảnh nhẹ nhàng, rõ ràng và đáng tin cậy.",
+        onboardingCaptureTitle = "Chọn chuẩn ảnh trước khi chụp",
+        onboardingCaptureDescription = "Chọn nhanh kích thước hộ chiếu, visa, hồ sơ hoặc giấy tờ phổ biến theo từng quốc gia.",
+        onboardingAiTitle = "AI căn mặt và tách nền",
+        onboardingAiDescription = "App xử lý khuôn mặt, ánh sáng và nền ảnh ngay trên thiết bị để ảnh thẻ gọn gàng hơn.",
+        onboardingExportTitle = "Lưu ảnh hoặc bố cục in",
+        onboardingExportDescription = "Xuất ảnh đơn, đổi màu nền, chọn định dạng và tạo sheet in chỉ trong một luồng làm việc.",
+        onboardingPrimaryAction = "Bắt đầu",
+        onboardingSecondaryAction = "Bỏ qua",
+    )
+    AppLanguage.EN -> OnboardingStrings(
+        onboardingTitle = "Clean ID photos in a few steps",
+        onboardingSubtitle = "Aqua, coral and warm yellow tones make the capture flow feel clear, friendly and precise.",
+        onboardingCaptureTitle = "Pick the right photo standard first",
+        onboardingCaptureDescription = "Quickly choose passport, visa, resume and common document sizes by country.",
+        onboardingAiTitle = "AI alignment and background removal",
+        onboardingAiDescription = "The app refines face position, lighting and background on device for a polished ID photo.",
+        onboardingExportTitle = "Save or prepare a print layout",
+        onboardingExportDescription = "Export a single photo, change background color, choose format and create a print sheet in one flow.",
+        onboardingPrimaryAction = "Get started",
+        onboardingSecondaryAction = "Skip",
+    )
+    AppLanguage.JA -> OnboardingStrings(
+        onboardingTitle = "数ステップで明るい証明写真",
+        onboardingSubtitle = "アクア、コーラル、温かなイエローの配色で、撮影フローを見やすく親しみやすくします。",
+        onboardingCaptureTitle = "先に写真規格を選択",
+        onboardingCaptureDescription = "国別のパスポート、ビザ、履歴書、各種書類サイズをすばやく選べます。",
+        onboardingAiTitle = "AIで顔位置調整と背景除去",
+        onboardingAiDescription = "端末上で顔の位置、明るさ、背景を整え、自然な証明写真に仕上げます。",
+        onboardingExportTitle = "保存または印刷レイアウト作成",
+        onboardingExportDescription = "単体写真の保存、背景色変更、形式選択、印刷シート作成まで一つの流れで行えます。",
+        onboardingPrimaryAction = "始める",
+        onboardingSecondaryAction = "スキップ",
+    )
+    AppLanguage.ZH -> OnboardingStrings(
+        onboardingTitle = "几步完成清晰证件照",
+        onboardingSubtitle = "水绿色、珊瑚色和暖黄色让拍摄流程更清楚、友好且精准。",
+        onboardingCaptureTitle = "先选择合适的照片规格",
+        onboardingCaptureDescription = "按国家快速选择护照、签证、简历和常用证件照尺寸。",
+        onboardingAiTitle = "AI 对齐人脸并去除背景",
+        onboardingAiDescription = "在设备上优化人脸位置、光线和背景，让证件照更整洁。",
+        onboardingExportTitle = "保存照片或生成打印排版",
+        onboardingExportDescription = "可导出单张照片、修改背景颜色、选择格式，并在同一流程中生成打印版。",
+        onboardingPrimaryAction = "开始使用",
+        onboardingSecondaryAction = "跳过",
+    )
+    AppLanguage.KR -> OnboardingStrings(
+        onboardingTitle = "몇 단계로 완성하는 선명한 증명사진",
+        onboardingSubtitle = "아쿠아, 코랄, 따뜻한 옐로 톤으로 촬영 흐름을 더 명확하고 친근하게 만듭니다.",
+        onboardingCaptureTitle = "먼저 사진 규격을 선택하세요",
+        onboardingCaptureDescription = "국가별 여권, 비자, 이력서, 주요 문서 사진 크기를 빠르게 고를 수 있습니다.",
+        onboardingAiTitle = "AI 얼굴 정렬과 배경 제거",
+        onboardingAiDescription = "기기에서 얼굴 위치, 조명, 배경을 다듬어 깔끔한 증명사진을 만듭니다.",
+        onboardingExportTitle = "저장하거나 인쇄 레이아웃 만들기",
+        onboardingExportDescription = "단일 사진 저장, 배경색 변경, 형식 선택, 인쇄 시트 생성을 한 흐름에서 처리합니다.",
+        onboardingPrimaryAction = "시작하기",
+        onboardingSecondaryAction = "건너뛰기",
+    )
 }

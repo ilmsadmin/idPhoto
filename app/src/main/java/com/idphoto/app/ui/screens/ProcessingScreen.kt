@@ -74,7 +74,7 @@ fun ProcessingScreen(
     val strings = LocalStrings.current
     val colors = LocalAppColors.current
 
-    // Subtle violet glow background
+    // Subtle aqua glow background
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -82,7 +82,7 @@ fun ProcessingScreen(
             .background(
                 Brush.radialGradient(
                     colors = listOf(
-                        if (colors.isDark) Color(0x408B6DFF) else Color(0x308B6DFF),
+                        if (colors.isDark) Color(0x4063CEC5) else Color(0x30CDEEEA),
                         Color.Transparent,
                     ),
                     radius = 900f,
@@ -244,10 +244,10 @@ private fun ProcessingIconStack() {
                 .background(
                     Brush.sweepGradient(
                         listOf(
-                            Color(0xFF3D5AFE),
-                            Color(0xFF8B6DFF),
-                            Color(0xFFFF7A59),
-                            Color(0xFF3D5AFE),
+                            Color(0xFF54BDB4),
+                            Color(0xFFFF705D),
+                            Color(0xFFFFC857),
+                            Color(0xFF54BDB4),
                         )
                     )
                 )
@@ -264,7 +264,7 @@ private fun ProcessingIconStack() {
                     Brush.linearGradient(
                         listOf(
                             colors.primaryContainer,
-                            if (colors.isDark) Color(0xFF3D5AFE).copy(alpha = 0.25f) else Color(0xFFF1E9FF),
+                            if (colors.isDark) Color(0xFF54BDB4).copy(alpha = 0.25f) else Color(0xFFE7F7F4),
                         )
                     )
                 ),
@@ -289,7 +289,7 @@ private fun ProcStepRow(index: Int, label: String, status: StepStatus) {
 
     val (bg, fg, icon) = when (status) {
         StepStatus.DONE -> Triple(
-            if (colors.isDark) Color(0x4400C9A7) else Color(0xFFD7F5E8),
+            if (colors.isDark) Color(0x4463CEC5) else Color(0xFFDDF4EF),
             colors.success,
             Icons.Filled.Check,
         )

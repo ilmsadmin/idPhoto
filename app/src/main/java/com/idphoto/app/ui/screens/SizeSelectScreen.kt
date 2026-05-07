@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.idphoto.app.processing.PhotoSize
 import com.idphoto.app.processing.PhotoSizeManager
 import com.idphoto.app.ui.LocalStrings
+import com.idphoto.app.ui.localizedCountry
 import com.idphoto.app.ui.localizedSizeDescription
 import com.idphoto.app.ui.components.SizeThumb
 import com.idphoto.app.ui.components.SurfaceIconButton
@@ -138,7 +139,7 @@ fun SizeSelectScreen(
         ) {
             countries.forEach { country ->
                 CountryTab(
-                    name = country.name,
+                    name = strings.localizedCountry(country.code),
                     flag = countryFlagEmoji(country.code),
                     active = selectedCountry == country.code,
                     onClick = { selectedCountry = country.code },
@@ -278,8 +279,8 @@ private fun SizeRow(size: PhotoSize, featured: Boolean, onClick: () -> Unit) {
                 Spacer(Modifier.height(4.dp))
                 TonalChip(
                     text = LocalStrings.current.suggestedBadge,
-                    background = if (colors.isDark) Color(0x4400C9A7) else Color(0xFFD7F5E8),
-                    contentColor = if (colors.isDark) Color(0xFF7FF0CE) else Color(0xFF00533B),
+                    background = if (colors.isDark) Color(0x4463CEC5) else Color(0xFFDDF4EF),
+                    contentColor = if (colors.isDark) Color(0xFF9EEDE5) else Color(0xFF0E625B),
                 )
             }
         }

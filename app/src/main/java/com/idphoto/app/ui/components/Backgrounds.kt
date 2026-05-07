@@ -15,8 +15,8 @@ import com.idphoto.app.ui.theme.LocalAppColors
  * Aurora background — soft multi-color radial gradients used on the Home hero
  * area. Mirrors the CSS `radial-gradient(...)` stack from the mockup.
  *
- * In light mode: pastel violet/coral/mint blobs over a near-white base.
- * In dark mode : deep violet/coral/mint blobs over a near-black base.
+ * In light mode: pastel aqua/coral/yellow fields over a warm white base.
+ * In dark mode : deep aqua/coral/yellow fields over a near-black base.
  */
 @Composable
 fun AuroraBackground(
@@ -26,19 +26,19 @@ fun AuroraBackground(
     val colors = LocalAppColors.current
     val isDark = colors.isDark
 
-    val baseTop = if (isDark) Color(0xFF1E1A3A) else Color(0xFFF4EDFF)
-    val baseBottom = if (isDark) Color(0xFF0F0C1C) else Color(0xFFFFFFFF)
+    val baseTop = if (isDark) Color(0xFF12332F) else Color(0xFFEAF8F5)
+    val baseBottom = if (isDark) Color(0xFF091715) else Color(0xFFFFFBF5)
 
-    val violet = if (isDark) Color(0x738B6DFF) else Color(0x738B6DFF)
-    val coral = if (isDark) Color(0x47FF7A59) else Color(0x52FF7A59)
-    val mint = if (isDark) Color(0x3800C9A7) else Color(0x4700C9A7)
+    val aqua = if (isDark) Color(0x7063CEC5) else Color(0x7354BDB4)
+    val coral = if (isDark) Color(0x55FF705D) else Color(0x4DFF705D)
+    val aperture = if (isDark) Color(0x44FFD66B) else Color(0x55FFD66B)
 
     Box(
         modifier = modifier
             .background(Brush.verticalGradient(listOf(baseTop, baseBottom)))
             .background(
                 Brush.radialGradient(
-                    colors = listOf(violet, Color.Transparent),
+                    colors = listOf(aqua, Color.Transparent),
                     center = Offset(-100f, -150f),
                     radius = 900f,
                 )
@@ -52,7 +52,7 @@ fun AuroraBackground(
             )
             .background(
                 Brush.radialGradient(
-                    colors = listOf(mint, Color.Transparent),
+                    colors = listOf(aperture, Color.Transparent),
                     center = Offset(500f, 1500f),
                     radius = 700f,
                 )
@@ -63,7 +63,7 @@ fun AuroraBackground(
 }
 
 /**
- * Splash entry gradient — bold purple/azure radial mix.
+ * Splash entry gradient — aqua, coral and warm aperture mix from the icon.
  */
 @Composable
 fun SplashGradient(
@@ -75,22 +75,22 @@ fun SplashGradient(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF3D5AFE),
-                        Color(0xFF6A3DFE),
-                        Color(0xFF9C27FF),
+                        Color(0xFF54BDB4),
+                        Color(0xFFFF705D),
+                        Color(0xFFFFC857),
                     )
                 )
             )
             .background(
                 Brush.radialGradient(
-                    colors = listOf(Color(0xCC7B8BFF), Color.Transparent),
+                    colors = listOf(Color(0xCCB8F1EA), Color.Transparent),
                     center = Offset(300f, 400f),
                     radius = 700f,
                 )
             )
             .background(
                 Brush.radialGradient(
-                    colors = listOf(Color(0xCCB47CFF), Color.Transparent),
+                    colors = listOf(Color(0xCCFFD66B), Color.Transparent),
                     center = Offset(900f, 1400f),
                     radius = 700f,
                 )

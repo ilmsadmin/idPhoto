@@ -20,6 +20,7 @@ import java.io.IOException
  * - DPI ảnh (photoDpi)
  * - Định dạng output (outputFormat)
  * - Watermark bật/tắt (watermarkEnabled)
+ * - Onboarding đã hoàn tất (onboardingCompleted)
  * - Khổ giấy in (paperSize)
  * - Đường cắt bật/tắt (cutLinesEnabled)
  */
@@ -36,6 +37,7 @@ class SettingsDataStore(private val context: Context) {
         val PHOTO_DPI = intPreferencesKey("photo_dpi")
         val OUTPUT_FORMAT = stringPreferencesKey("output_format")
         val WATERMARK_ENABLED = booleanPreferencesKey("watermark_enabled")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val PAPER_SIZE = stringPreferencesKey("paper_size")
         val CUT_LINES_ENABLED = booleanPreferencesKey("cut_lines_enabled")
     }
@@ -48,6 +50,7 @@ class SettingsDataStore(private val context: Context) {
         val photoDpi: Int = 300,
         val outputFormat: String = "JPEG",
         val watermarkEnabled: Boolean = false,
+        val onboardingCompleted: Boolean = false,
         val paperSize: String = "4×6 inch",
         val cutLinesEnabled: Boolean = true,
     )
@@ -73,6 +76,7 @@ class SettingsDataStore(private val context: Context) {
                 photoDpi = prefs[Keys.PHOTO_DPI] ?: 300,
                 outputFormat = prefs[Keys.OUTPUT_FORMAT] ?: "JPEG",
                 watermarkEnabled = prefs[Keys.WATERMARK_ENABLED] ?: false,
+                onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
                 paperSize = prefs[Keys.PAPER_SIZE] ?: "4×6 inch",
                 cutLinesEnabled = prefs[Keys.CUT_LINES_ENABLED] ?: true,
             )
@@ -107,6 +111,12 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setWatermarkEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[Keys.WATERMARK_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setOnboardingCompleted(completed: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.ONBOARDING_COMPLETED] = completed
         }
     }
 
