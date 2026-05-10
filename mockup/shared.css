@@ -1,0 +1,195 @@
+:root {
+  --font-ios: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --text-primary: #1f2733;
+  --text-secondary: #6f7a88;
+}
+
+body {
+  font-family: var(--font-ios);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: var(--text-primary);
+}
+
+.status-icons svg {
+  width: 16px;
+  height: 16px;
+  stroke: #111827;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.status-icons .icon-battery {
+  width: 24px;
+  height: 14px;
+}
+
+.sprite-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Avatar Home typography */
+body.avatar-home h1 {
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.25px;
+}
+
+body.avatar-home .sub {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+body.avatar-home .hero h2 {
+  font-size: 16px;
+  line-height: 1.15;
+  letter-spacing: -0.2px;
+}
+
+body.avatar-home .hero p {
+  font-size: 15px;
+}
+
+body.avatar-home .btn {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body.avatar-home .row-head h3 {
+  font-size: 18px;
+  letter-spacing: -0.2px;
+}
+
+body.avatar-home .all {
+  font-size: 14px;
+}
+
+body.avatar-home .chip {
+  font-size: 13px;
+}
+
+body.avatar-home .style .name {
+  font-size: 15px;
+}
+
+body.avatar-home .social {
+  font-size: 12px;
+}
+
+/* Avatar Create typography */
+body.avatar-create .title {
+  font-size: 20px;
+  letter-spacing: -0.2px;
+}
+
+body.avatar-create .save {
+  font-size: 14px;
+}
+
+body.avatar-create .step {
+  font-size: 12px;
+}
+
+body.avatar-create .hint {
+  font-size: 14px;
+}
+
+body.avatar-create .section-title {
+  font-size: 18px;
+  letter-spacing: -0.2px;
+}
+
+body.avatar-create .style {
+  font-size: 12px;
+}
+
+body.avatar-create .tool strong {
+  font-size: 13px;
+}
+
+body.avatar-create .tool {
+  font-size: 12px;
+}
+
+body.avatar-create .cta {
+  font-size: 19px;
+}
+
+body.avatar-create .foot {
+  font-size: 13px;
+}
+
+/* AI Photo Studio V2 fixes */
+body.ai-photo-v2 .status-bar {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body.ai-photo-v2 .brand {
+  font-size: 17px;
+  letter-spacing: -0.2px;
+}
+
+body.ai-photo-v2 .hero-title {
+  font-size: 25px;
+  line-height: 1.12;
+}
+
+body.ai-photo-v2 .hero-sub {
+  font-size: 12px;
+}
+
+body.ai-photo-v2 .section-head h2,
+body.ai-photo-v2 .template-head h2,
+body.ai-photo-v2 .trend-title {
+  font-size: 16px;
+}
+
+body.ai-photo-v2 .link {
+  font-size: 12px;
+}
+
+body.ai-photo-v2 .feature-title {
+  font-size: 11px;
+}
+
+body.ai-photo-v2 .feature-sub {
+  font-size: 10px;
+}
+
+body.ai-photo-v2 .today-copy h3 {
+  font-size: 16px;
+}
+
+body.ai-photo-v2 .today-copy p {
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  body.avatar-home h1 {
+    font-size: 22px;
+  }
+
+  body.avatar-home .hero h2 {
+    font-size: 16px;
+  }
+
+  body.avatar-home .row-head h3 {
+    font-size: 18px;
+  }
+
+  body.avatar-create .title {
+    font-size: 20px;
+  }
+
+  body.avatar-create .section-title {
+    font-size: 18px;
+  }
+
+  body.avatar-create .cta {
+    font-size: 19px;
+  }
+}

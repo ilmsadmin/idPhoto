@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avatar AI - Create</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --card: #ffffff;
+      --line: #e8ecef;
+      --text: #1f2733;
+      --muted: #7a8594;
+      --teal: #56d2c4;
+      --teal-dark: #42c2b2;
+      --orange: #ff8f73;
+      --shadow: 0 8px 24px rgba(16, 32, 51, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #f8fafb 0%, #f2f5f7 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone {
+      width: 390px;
+      min-height: 844px;
+      background: var(--bg);
+      padding: 14px 12px 12px;
+    }
+
+    .status {
+      height: 26px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 0 6px;
+      margin-bottom: 8px;
+    }
+
+    .status-icons { display: flex; gap: 6px; align-items: center; }
+    .sig { width: 16px; height: 10px; position: relative; }
+    .sig::before { content: ""; position: absolute; right: 0; bottom: 0; width: 3px; height: 10px; background: #111; border-radius: 1px; box-shadow: -4px 2px 0 #111, -8px 4px 0 #111; }
+    .wifi { width: 14px; height: 10px; border: 2px solid #111; border-top: 0; border-left-color: transparent; border-right-color: transparent; border-radius: 50%; }
+    .bat { width: 22px; height: 11px; border: 1.8px solid #111; border-radius: 3px; position: relative; }
+    .bat::before { content: ""; position: absolute; right: -4px; top: 3px; width: 2px; height: 4px; background: #111; border-radius: 0 1px 1px 0; }
+    .bat::after { content: ""; position: absolute; inset: 1px; background: #111; border-radius: 1px; }
+
+    .top {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .back {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b232d;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+    }
+
+    .save {
+      border: 0;
+      height: 34px;
+      border-radius: 17px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(120deg, var(--teal) 0%, var(--teal-dark) 100%);
+    }
+
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .step { flex: 1; text-align: center; font-size: 12px; color: #8893a2; font-weight: 600; }
+    .step .dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 11px;
+      margin: 0 auto 6px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      background: #e7ebef;
+      color: #7f8a99;
+      font-weight: 700;
+    }
+    .step.active { color: #4dcabd; }
+    .step.active .dot { background: linear-gradient(120deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; }
+
+    .preview {
+      background: #eceff2;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .circle {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid #fff;
+      box-shadow: inset 0 0 0 1px #e5e9ee;
+    }
+
+    .edit {
+      position: absolute;
+      right: 18px;
+      bottom: 78px;
+      width: 38px;
+      height: 38px;
+      border-radius: 19px;
+      border: 1px solid var(--line);
+      background: #fff;
+      box-shadow: 0 6px 14px rgba(16, 30, 48, 0.12);
+      display: grid;
+      place-items: center;
+      color: #4f5a68;
+    }
+
+    .hint {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 14px;
+      color: #677282;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .section-title {
+      font-size: 34px;
+      letter-spacing: -0.3px;
+      margin: 14px 2px 10px;
+      font-weight: 800;
+    }
+
+    .style-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .style {
+      text-align: center;
+      font-size: 12px;
+      color: #475261;
+      font-weight: 600;
+    }
+
+    .style .img {
+      height: 86px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+      margin-bottom: 6px;
+      border: 1px solid transparent;
+    }
+
+    .style.active .img {
+      border-color: #4ecabd;
+      box-shadow: 0 0 0 2px rgba(78, 202, 189, 0.2);
+    }
+
+    .style .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #ffefdd;
+      border: 1px solid #efcfaa;
+      color: #7a5317;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 5px;
+    }
+
+    .bg-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .bg-item {
+      width: 46px;
+      height: 46px;
+      border-radius: 23px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: #9aa3b0;
+      font-size: 22px;
+      flex: 0 0 auto;
+    }
+
+    .bg-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .tool {
+      background: #f1f4f6;
+      border-radius: 12px;
+      min-height: 92px;
+      padding: 8px 6px;
+      text-align: center;
+      position: relative;
+      color: #596576;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .tool .icon {
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 6px;
+      border-radius: 8px;
+      border: 1px solid #dde3ea;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: #7b8797;
+    }
+
+    .tool strong { display: block; color: #27313e; margin-bottom: 2px; font-size: 13px; }
+
+    .tool .pro {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      font-size: 9px;
+      background: #f6cf78;
+      color: #5f4513;
+      border-radius: 8px;
+      padding: 1px 5px;
+      font-weight: 800;
+      border: 1px solid #e5b65b;
+    }
+
+    .cta {
+      width: 100%;
+      border: 0;
+      height: 48px;
+      border-radius: 24px;
+      color: #fff;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+      background: linear-gradient(100deg, var(--teal) 0%, #69d5c0 35%, var(--orange) 100%);
+      margin-top: 2px;
+    }
+
+    .foot {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 13px;
+      color: #7b8696;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    .home-bar {
+      width: 134px;
+      height: 5px;
+      border-radius: 3px;
+      background: #1f2733;
+      opacity: 0.85;
+      margin: 14px auto 0;
+    }
+
+    /* Reference screen: right half of the supplied 768px design image. */
+    .phone {
+      width: 379px;
+      min-height: 1152px;
+      padding: 15px 14px 0;
+      background: linear-gradient(180deg, #fbfcfd 0%, #f7f9fa 100%);
+    }
+
+    .status {
+      height: 30px;
+      padding: 0 20px;
+      margin-bottom: 13px;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 700;
+      color: #101820;
+    }
+
+    .status-icons { gap: 5px; color: #101820; }
+    .status-icons .sprite-icon { width: 16px; height: 16px; }
+    .status-icons .icon-battery { width: 24px; height: 14px; }
+
+    .top {
+      grid-template-columns: 32px 1fr 58px;
+      height: 42px;
+      margin-bottom: 22px;
+      padding: 0 5px;
+    }
+
+    .back {
+      width: 28px;
+      height: 28px;
+    }
+
+    .back .sprite-icon { width: 23px; height: 23px; stroke-width: 2.3; }
+
+    body.avatar-create .title {
+      font-size: 19px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+    }
+
+    .save {
+      height: 38px;
+      border-radius: 19px;
+      padding: 0 16px;
+      justify-self: end;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .steps {
+      padding: 0 26px;
+      gap: 0;
+      margin-bottom: 26px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: "";
+      position: absolute;
+      left: 78px;
+      right: 78px;
+      top: 10px;
+      height: 1px;
+      background: #e9edf1;
+      z-index: 0;
+    }
+
+    .step {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      line-height: 1.1;
+      font-weight: 600;
+      color: #818c9b;
+    }
+
+    .step .dot {
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #eceff2;
+    }
+
+    .preview {
+      height: 334px;
+      border-radius: 14px;
+      padding: 11px 14px 13px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 24px rgba(23, 35, 52, .08);
+      background: linear-gradient(135deg, #d7d1cf 0%, #eff1f2 48%, #c7c8c8 100%);
+    }
+
+    .circle {
+      width: 272px;
+      height: 272px;
+      margin: 0 auto;
+      border-width: 2px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.65);
+    }
+
+    .circle img { object-position: center top; }
+
+    .edit {
+      right: 48px;
+      bottom: 51px;
+      width: 42px;
+      height: 42px;
+      border-radius: 21px;
+    }
+
+    .edit .sprite-icon { width: 20px; height: 20px; }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1;
+      gap: 7px;
+      color: #687584;
+    }
+
+    .hint svg { width: 14px; height: 14px; }
+
+    body.avatar-create .section-title {
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      margin: 0 0 13px;
+    }
+
+    .style-row {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    .style {
+      font-size: 11px;
+      line-height: 1.15;
+      font-weight: 600;
+      color: #4f5b69;
+    }
+
+    .style .img {
+      height: 88px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 7px 18px rgba(24, 36, 54, .09);
+    }
+
+    .style.active .img {
+      border-width: 1.5px;
+      box-shadow: 0 0 0 2px rgba(78, 202, 189, .22);
+    }
+
+    .badge {
+      top: 6px;
+      right: 5px;
+      height: 17px;
+      padding: 0 5px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+    }
+
+    .bg-row {
+      gap: 11px;
+      margin-bottom: 29px;
+    }
+
+    .bg-item {
+      width: 48px;
+      height: 48px;
+      border-radius: 24px;
+      font-size: 25px;
+      background: #f1f3f5;
+    }
+
+    .tools {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .tool {
+      min-height: 105px;
+      border-radius: 13px;
+      padding: 13px 6px 10px;
+      background: #f1f3f5;
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 500;
+      color: #768190;
+    }
+
+    .tool .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      margin-bottom: 11px;
+      color: #7d8795;
+    }
+
+    .tool strong {
+      font-size: 12px;
+      line-height: 1.1;
+      font-weight: 800;
+      margin-bottom: 5px;
+      color: #283340;
+    }
+
+    .tool .pro {
+      top: 7px;
+      right: 8px;
+      height: 17px;
+      border-radius: 9px;
+      padding: 0 5px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 9px;
+    }
+
+    .cta {
+      height: 51px;
+      border-radius: 26px;
+      margin-top: 0;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0;
+      box-shadow: 0 8px 18px rgba(238, 116, 98, .16);
+    }
+
+    .foot {
+      margin-top: 9px;
+      font-size: 12px;
+      line-height: 1;
+      gap: 6px;
+      color: #778392;
+    }
+
+    .foot svg { width: 14px; height: 14px; }
+
+    .home-bar {
+      width: 134px;
+      height: 5px;
+      margin-top: 28px;
+    }
+  </style>
+</head>
+<body class="avatar-create">
+  <main class="phone">
+    <div class="status">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-signal"></use></svg>
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-wifi"></use></svg>
+        <svg class="sprite-icon icon-battery" aria-hidden="true"><use href="icons.svg#icon-battery"></use></svg>
+      </div>
+    </div>
+
+    <header class="top">
+      <a class="back" href="#" aria-label="Back">
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-arrow-left"></use></svg>
+      </a>
+      <h1 class="title">Tạo Avatar</h1>
+      <button class="save">Lưu</button>
+    </header>
+
+    <section class="steps">
+      <article class="step active"><div class="dot">1</div>Chọn ảnh</article>
+      <article class="step"><div class="dot">2</div>Chọn phong cách</article>
+      <article class="step"><div class="dot">3</div>Tạo avatar</article>
+    </section>
+
+    <section class="preview">
+      <div class="circle"><img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80" alt="avatar preview"/></div>
+      <button class="edit" aria-label="edit">
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-edit"></use></svg>
+      </button>
+      <p class="hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#57cfc2"/><path d="M7 12.5L10 15.5L17 8.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Ảnh chân dung rõ mặt, ánh sáng tốt
+      </p>
+    </section>
+
+    <h2 class="section-title">Chọn phong cách</h2>
+    <section class="style-row">
+      <article class="style active"><div class="img"><img src="https://images.unsplash.com/photo-1545167622-3a6ac756afa4?auto=format&fit=crop&w=500&q=80" alt="Business"/></div>Business</article>
+      <article class="style"><div class="img"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80" alt="Korean"/></div>Korean Studio</article>
+      <article class="style"><div class="img"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80" alt="Coffee"/><span class="badge">PRO</span></div>Coffee Time</article>
+      <article class="style"><div class="img"><img src="https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=500&q=80" alt="Dark"/><span class="badge">PRO</span></div>Dark Luxury</article>
+    </section>
+
+    <h2 class="section-title">Chọn nền</h2>
+    <section class="bg-row">
+      <article class="bg-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#9aa3b0" stroke-width="2"/><path d="M6 18L18 6" stroke="#9aa3b0" stroke-width="2"/></svg>
+      </article>
+      <article class="bg-item"><img src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=300&q=80" alt="bg1"/></article>
+      <article class="bg-item"><img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80" alt="bg2"/></article>
+      <article class="bg-item"><img src="https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=300&q=80" alt="bg3"/></article>
+      <article class="bg-item"><img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=300&q=80" alt="bg4"/></article>
+      <article class="bg-item">+</article>
+    </section>
+
+    <h2 class="section-title">Tùy chỉnh</h2>
+    <section class="tools">
+      <article class="tool"><div class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L13.7 8.3L19 10L13.7 11.7L12 17L10.3 11.7L5 10L10.3 8.3L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div><strong>Làm đẹp</strong>Tự nhiên</article>
+      <article class="tool"><div class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 3V6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 18V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 12H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 12H21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M5.6 5.6L7.8 7.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16.2 16.2L18.4 18.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16.2 7.8L18.4 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M5.6 18.4L7.8 16.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>Ánh sáng</strong>Tự động</article>
+      <article class="tool"><span class="pro">PRO</span><div class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 7L10 5L12 8L14 5L18 7V11C18 13.2 16.2 15 14 15H10C7.8 15 6 13.2 6 11V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 15V19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14 15V19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>Trang phục</strong>Tự động</article>
+      <article class="tool"><div class="icon">FX</div><strong>Hiệu ứng</strong>Không</article>
+    </section>
+
+    <button class="cta">Tạo Avatar</button>
+    <p class="foot">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#8f99a7" stroke-width="2"/><path d="M12 7V12" stroke="#8f99a7" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="#8f99a7"/></svg>
+      AI sẽ xử lý ảnh trong 3-5 giây
+    </p>
+
+    <div class="home-bar"></div>
+  </main>
+</body>
+</html>

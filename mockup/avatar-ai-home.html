@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avatar AI - Home</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --card: #ffffff;
+      --line: #e8ecef;
+      --text: #1f2733;
+      --muted: #7a8594;
+      --teal: #56d2c4;
+      --teal-dark: #42c2b2;
+      --orange: #ff8f73;
+      --mint: #9ee8dc;
+      --shadow: 0 8px 24px rgba(16, 32, 51, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #f8fafb 0%, #f2f5f7 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone {
+      width: 390px;
+      min-height: 844px;
+      background: var(--bg);
+      padding: 14px 12px 10px;
+    }
+
+    .status {
+      height: 26px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 0 6px;
+      margin-bottom: 8px;
+    }
+
+    .status-icons { display: flex; gap: 6px; align-items: center; }
+    .sig { width: 16px; height: 10px; position: relative; }
+    .sig::before { content: ""; position: absolute; right: 0; bottom: 0; width: 3px; height: 10px; background: #111; border-radius: 1px; box-shadow: -4px 2px 0 #111, -8px 4px 0 #111; }
+    .wifi { width: 14px; height: 10px; border: 2px solid #111; border-top: 0; border-left-color: transparent; border-right-color: transparent; border-radius: 50%; }
+    .bat { width: 22px; height: 11px; border: 1.8px solid #111; border-radius: 3px; position: relative; }
+    .bat::before { content: ""; position: absolute; right: -4px; top: 3px; width: 2px; height: 4px; background: #111; border-radius: 0 1px 1px 0; }
+    .bat::after { content: ""; position: absolute; inset: 1px; background: #111; border-radius: 1px; }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 38px;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+
+    .sub {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .pro {
+      height: 34px;
+      border-radius: 17px;
+      border: 1px solid #efb15a;
+      background: #fff8ee;
+      color: #7a5317;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hero {
+      background: linear-gradient(120deg, #f8bfab 0%, #a7e2d9 100%);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 132px;
+      gap: 8px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero h2 {
+      font-size: 40px;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: #4d5a68;
+      margin-bottom: 12px;
+    }
+
+    .hero-main {
+      width: 132px;
+      height: 170px;
+      border-radius: 14px;
+      overflow: hidden;
+      align-self: end;
+      box-shadow: 0 8px 20px rgba(20, 26, 42, 0.18);
+    }
+
+    .hero-main img,
+    .small img,
+    .style img,
+    .circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .thumbs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .small {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 2px solid #fff;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(16, 24, 38, 0.15);
+    }
+
+    .hero-actions { display: flex; gap: 8px; }
+
+    .btn {
+      flex: 1;
+      border: 0;
+      height: 46px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      color: #2d3744;
+    }
+
+    .btn.fill {
+      background: linear-gradient(120deg, var(--teal) 0%, var(--teal-dark) 100%);
+      color: #fff;
+    }
+
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 14px 2px 10px;
+    }
+
+    .row-head h3 {
+      font-size: 33px;
+      letter-spacing: -0.3px;
+    }
+
+    .all {
+      color: #49c8bc;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chips { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
+    .chip {
+      border: 0;
+      border-radius: 16px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #eceff3;
+      color: #4f5a68;
+      white-space: nowrap;
+    }
+    .chip.hot { background: linear-gradient(120deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; }
+
+    .styles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .style {
+      height: 156px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+
+    .style::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 55%;
+      background: linear-gradient(180deg, transparent, rgba(8, 13, 20, 0.78));
+    }
+
+    .style .name {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      z-index: 1;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.12;
+    }
+
+    .badge {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      z-index: 1;
+      background: #ffefdd;
+      border: 1px solid #efcfaa;
+      color: #7a5317;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 5px;
+    }
+
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .social {
+      text-align: center;
+      font-size: 12px;
+      color: #465161;
+      font-weight: 500;
+    }
+
+    .social .icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      margin: 0 auto 6px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .fb { color: #1877f2; }
+    .ig { color: #e1306c; }
+    .tt { color: #111; }
+    .yt { color: #ff0000; }
+    .in { color: #0a66c2; }
+
+    .bottom {
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      border-top: 1px solid var(--line);
+      border-radius: 16px 16px 0 0;
+      padding: 8px 4px 6px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      z-index: 10;
+    }
+
+    .nav {
+      text-align: center;
+      color: #8b95a3;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .nav svg { width: 22px; height: 22px; display: block; margin: 0 auto 4px; stroke: currentColor; }
+    .nav.active { color: var(--teal-dark); }
+
+    .plus-wrap { display: flex; justify-content: center; }
+    .plus {
+      width: 46px;
+      height: 46px;
+      border-radius: 23px;
+      border: 0;
+      background: linear-gradient(120deg, var(--teal) 0%, var(--teal-dark) 100%);
+      color: #fff;
+      font-size: 28px;
+      line-height: 1;
+      box-shadow: 0 8px 16px rgba(64, 192, 175, 0.4);
+    }
+
+    /* Reference screen: left half of the supplied 768px design image. */
+    .phone {
+      width: 379px;
+      min-height: 1152px;
+      padding: 15px 11px 0;
+      background: linear-gradient(180deg, #fbfcfd 0%, #f7f9fa 100%);
+    }
+
+    .status {
+      height: 30px;
+      padding: 0 24px;
+      margin-bottom: 13px;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 700;
+      color: #101820;
+    }
+
+    .status-icons { gap: 5px; color: #101820; }
+    .status-icons .sprite-icon { width: 16px; height: 16px; }
+    .status-icons .icon-battery { width: 24px; height: 14px; }
+
+    .top {
+      align-items: flex-start;
+      margin-bottom: 22px;
+      padding: 0 10px;
+    }
+
+    body.avatar-home h1 {
+      font-size: 23px;
+      line-height: 1.08;
+      letter-spacing: -0.25px;
+      margin-bottom: 6px;
+      font-weight: 800;
+    }
+
+    body.avatar-home .sub {
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: #606b78;
+    }
+
+    .pro {
+      height: 31px;
+      border-radius: 16px;
+      padding: 0 12px;
+      gap: 6px;
+      font-size: 13px;
+      line-height: 1;
+      border-width: 1.2px;
+    }
+
+    .pro .sprite-icon { width: 16px; height: 16px; }
+
+    .hero {
+      min-height: 319px;
+      grid-template-columns: 172px 139px;
+      gap: 12px;
+      border-radius: 19px;
+      padding: 24px 18px 18px;
+      margin-bottom: 23px;
+      background: linear-gradient(120deg, #ffbba6 0%, #d5e6dd 47%, #99dfd3 100%);
+      box-shadow: 0 10px 28px rgba(27, 40, 56, 0.08);
+    }
+
+    body.avatar-home .hero h2 {
+      font-size: 24px;
+      line-height: 1.18;
+      letter-spacing: -0.35px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    body.avatar-home .hero p {
+      font-size: 13px;
+      line-height: 1.3;
+      margin-bottom: 57px;
+      color: #66717e;
+    }
+
+    .hero-main {
+      width: 138px;
+      height: 220px;
+      border-radius: 0 18px 18px 18px;
+      align-self: start;
+      justify-self: end;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    .hero-main img {
+      border-radius: 16px;
+      object-position: center top;
+    }
+
+    .thumbs {
+      position: absolute;
+      left: 91px;
+      top: 186px;
+      gap: 5px;
+      margin: 0;
+      transform: rotate(-4deg);
+      z-index: 2;
+    }
+
+    .small {
+      width: 48px;
+      height: 54px;
+      border-radius: 11px;
+      border-width: 3px;
+      box-shadow: 0 5px 12px rgba(20, 31, 45, .18);
+    }
+
+    .hero-actions {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      gap: 13px;
+    }
+
+    .btn {
+      height: 49px;
+      border-radius: 11px;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 3px 12px rgba(31, 42, 57, .06);
+    }
+
+    .btn .sprite-icon { width: 17px; height: 17px; }
+
+    .row-head {
+      margin: 0 6px 12px;
+    }
+
+    body.avatar-home .row-head h3 {
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: -0.2px;
+      font-weight: 800;
+    }
+
+    body.avatar-home .all {
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .all .sprite-icon { width: 14px; height: 14px; }
+
+    .chips {
+      gap: 10px;
+      margin: 0 5px 16px;
+      scrollbar-width: none;
+    }
+
+    .chips::-webkit-scrollbar { display: none; }
+
+    body.avatar-home .chip {
+      height: 35px;
+      border-radius: 18px;
+      padding: 0 18px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .styles {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 10px;
+      margin: 0 5px 35px;
+    }
+
+    .style {
+      height: 156px;
+      border-radius: 11px;
+      box-shadow: 0 7px 18px rgba(24, 36, 54, .09);
+    }
+
+    body.avatar-home .style .name {
+      left: 8px;
+      bottom: 9px;
+      font-size: 13px;
+      line-height: 1.1;
+      font-weight: 700;
+    }
+
+    .badge {
+      top: 7px;
+      right: 7px;
+      height: 18px;
+      border-radius: 9px;
+      padding: 0 6px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+    }
+
+    .social-grid {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin: 0 5px 22px;
+    }
+
+    body.avatar-home .social {
+      font-size: 11px;
+      line-height: 1;
+      color: #596474;
+    }
+
+    .social .icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      font-size: 24px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(28, 40, 58, .04);
+    }
+
+    .bottom {
+      position: sticky;
+      bottom: 0;
+      height: 86px;
+      border-radius: 0;
+      margin: 0 -11px;
+      padding: 10px 9px 15px;
+      border-top: 1px solid #edf0f3;
+      box-shadow: 0 -7px 22px rgba(31, 42, 57, .04);
+    }
+
+    .nav {
+      font-size: 10px;
+      line-height: 1;
+      font-weight: 600;
+    }
+
+    .nav svg {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 6px;
+    }
+
+    .plus {
+      width: 48px;
+      height: 48px;
+      border-radius: 24px;
+      font-size: 30px;
+    }
+  </style>
+</head>
+<body class="avatar-home">
+  <main class="phone">
+    <div class="status">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-signal"></use></svg>
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-wifi"></use></svg>
+        <svg class="sprite-icon icon-battery" aria-hidden="true"><use href="icons.svg#icon-battery"></use></svg>
+      </div>
+    </div>
+
+    <section class="top">
+      <div>
+        <h1>Avatar AI</h1>
+        <p class="sub">Tạo avatar chuyên nghiệp chỉ với 1 ảnh</p>
+      </div>
+      <button class="pro">
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-crown"></use></svg>
+        PRO
+      </button>
+    </section>
+
+    <section class="hero">
+      <div>
+        <h2>Tạo avatar<br/>đẹp ấn tượng<br/>cho mọi nền tảng</h2>
+        <p>AI sẽ giúp bạn tỏa sáng</p>
+
+        <div class="thumbs">
+          <div class="small"><img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=400&q=80" alt="thumb"/></div>
+          <div class="small"><img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80" alt="thumb"/></div>
+          <div class="small"><img src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&w=400&q=80" alt="thumb"/></div>
+        </div>
+
+        <div class="hero-actions">
+          <button class="btn">
+            <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-camera"></use></svg>
+            Chụp ảnh
+          </button>
+          <button class="btn fill">
+            <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-gallery"></use></svg>
+            Chọn từ thư viện
+          </button>
+        </div>
+      </div>
+      <div class="hero-main">
+        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=700&q=80" alt="hero"/>
+      </div>
+    </section>
+
+    <div class="row-head">
+      <h3>Chọn phong cách</h3>
+      <a href="#" class="all">Xem tất cả
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-chevron-right"></use></svg>
+      </a>
+    </div>
+
+    <div class="chips">
+      <button class="chip hot">Hot</button>
+      <button class="chip">Business</button>
+      <button class="chip">Lifestyle</button>
+      <button class="chip">Studio</button>
+      <button class="chip">Art</button>
+    </div>
+
+    <section class="styles">
+      <article class="style"><img src="https://images.unsplash.com/photo-1545167622-3a6ac756afa4?auto=format&fit=crop&w=600&q=80" alt="Business"/><span class="badge">PRO</span><div class="name">Business<br/>Chuyên nghiệp</div></article>
+      <article class="style"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80" alt="Korean"/><span class="badge">PRO</span><div class="name">Korean Studio<br/>Phong cách Hàn</div></article>
+      <article class="style"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80" alt="Coffee"/><span class="badge">PRO</span><div class="name">Coffee Time<br/>Ấm áp, tự nhiên</div></article>
+      <article class="style"><img src="https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=600&q=80" alt="Dark"/><span class="badge">PRO</span><div class="name">Dark Luxury<br/>Sang trọng</div></article>
+      <article class="style"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80" alt="Minimal"/><span class="badge">PRO</span><div class="name">Minimal Clean<br/>Tối giản</div></article>
+      <article class="style"><img src="https://images.unsplash.com/photo-1557053910-d9eadeed1c58?auto=format&fit=crop&w=600&q=80" alt="Neon"/><span class="badge">PRO</span><div class="name">Neon Portrait<br/>Cá tính, nổi bật</div></article>
+    </section>
+
+    <div class="row-head">
+      <h3>Avatar cho mạng xã hội</h3>
+      <a href="#" class="all">Xem tất cả
+        <svg class="sprite-icon" aria-hidden="true"><use href="icons.svg#icon-chevron-right"></use></svg>
+      </a>
+    </div>
+
+    <section class="social-grid">
+      <article class="social"><div class="icon fb">f</div>Facebook</article>
+      <article class="social"><div class="icon ig">ig</div>Instagram</article>
+      <article class="social"><div class="icon tt">♪</div>TikTok</article>
+      <article class="social"><div class="icon yt">▶</div>YouTube</article>
+      <article class="social"><div class="icon in">in</div>Linkedin</article>
+    </section>
+
+    <nav class="bottom">
+      <a class="nav active" href="#">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3L21 10.5V20H3V10.5Z" stroke-width="1.8"/><path d="M9 20V13H15V20" stroke-width="1.8"/></svg>
+        Trang chủ
+      </a>
+      <a class="nav" href="#">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.8" stroke-width="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8" stroke-width="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8" stroke-width="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8" stroke-width="1.8"/></svg>
+        Studio
+      </a>
+      <div class="plus-wrap"><button class="plus">+</button></div>
+      <a class="nav" href="#">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="16" rx="2" stroke-width="1.8"/><path d="M8 8H16" stroke-width="1.8"/><path d="M8 12H16" stroke-width="1.8"/></svg>
+        Templates
+      </a>
+      <a class="nav" href="#">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke-width="1.8"/><path d="M4.5 20C5.7 16.6 8.5 15 12 15C15.5 15 18.3 16.6 19.5 20" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Tôi
+      </a>
+    </nav>
+  </main>
+</body>
+</html>
