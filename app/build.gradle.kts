@@ -31,8 +31,8 @@ android {
         applicationId = "com.idphoto_pro.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.9"
+        versionCode = 10
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -152,6 +152,9 @@ dependencies {
 
     // Splash Screen API
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Google Play In-App Review
+    implementation("com.google.android.play:review-ktx:2.0.1")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling")

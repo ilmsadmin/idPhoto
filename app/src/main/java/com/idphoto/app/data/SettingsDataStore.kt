@@ -40,6 +40,8 @@ class SettingsDataStore(private val context: Context) {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val PAPER_SIZE = stringPreferencesKey("paper_size")
         val CUT_LINES_ENABLED = booleanPreferencesKey("cut_lines_enabled")
+        val HAS_RATED = booleanPreferencesKey("has_rated")
+        val LAST_RATING_PROMPT_TIME = longPreferencesKey("last_rating_prompt_time")
     }
 
     // ── Data class for all settings ──
@@ -53,6 +55,8 @@ class SettingsDataStore(private val context: Context) {
         val onboardingCompleted: Boolean = false,
         val paperSize: String = "4×6 inch",
         val cutLinesEnabled: Boolean = true,
+        val hasRated: Boolean = false,
+        val lastRatingPromptTime: Long = 0L,
     )
 
     // ── Read all settings as Flow ──
@@ -79,10 +83,24 @@ class SettingsDataStore(private val context: Context) {
                 onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
                 paperSize = prefs[Keys.PAPER_SIZE] ?: "4×6 inch",
                 cutLinesEnabled = prefs[Keys.CUT_LINES_ENABLED] ?: true,
+                hasRated = prefs[Keys.HAS_RATED] ?: false,
+                lastRatingPromptTime = prefs[Keys.LAST_RATING_PROMPT_TIME] ?: 0L,
             )
         }
 
     // ── Write individual settings ──
+
+    suspend fun setHasRated(hasRated: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.HAS_RATED] = hasRated
+        }
+    }
+
+    suspend fun setLastRatingPromptTime(time: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.LAST_RATING_PROMPT_TIME] = time
+        }
+    }
 
     suspend fun setLanguage(language: AppLanguage) {
         context.dataStore.edit { prefs ->

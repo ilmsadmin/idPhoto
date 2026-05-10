@@ -11,12 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.android.play.core.review.ReviewManagerFactory
 import com.idphoto.app.ui.components.LanguageSheet
 import com.idphoto.app.ui.screens.*
 import com.idphoto.app.ui.theme.ThemeMode
@@ -31,6 +33,7 @@ fun NewMainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     // Image picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -74,6 +77,27 @@ fun NewMainScreen(
                 duration = SnackbarDuration.Short,
             )
             viewModel.clearSaveSuccess()
+        }
+    }
+
+    // In-App Review: launch Play review flow on happy-path events
+    LaunchedEffect(uiState.showRateDialog) {
+        if (uiState.showRateDialog) {
+            try {
+                val reviewManager = ReviewManagerFactory.create(context)
+                val reviewInfoTask = reviewManager.requestReviewFlow()
+                reviewInfoTask.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val activity = context as? android.app.Activity
+                        if (activity != null) {
+                            reviewManager.launchReviewFlow(activity, task.result)
+                        }
+                    }
+                    viewModel.dismissRatingPrompt()
+                }
+            } catch (_: Exception) {
+                viewModel.dismissRatingPrompt()
+            }
         }
     }
 
@@ -336,11 +360,7 @@ fun NewMainScreen(
                             onPrivacyClick = {
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://apps.zenix.vn/privacy-policy"))
                                 context.startActivity(intent)
-                            },
-                            onRateClick = {
-                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.idphoto_pro.app"))
-                                context.startActivity(intent)
-                            },
+                            }
                         )
                     }
                 }

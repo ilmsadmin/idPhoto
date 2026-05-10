@@ -19,6 +19,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
+import com.google.android.play.core.review.ReviewManagerFactory
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.StarBorder
 import com.idphoto.app.ui.AppLanguage
 import com.idphoto.app.ui.LocalLanguage
 import com.idphoto.app.ui.LocalStrings
@@ -61,16 +66,18 @@ fun SettingsScreen(
     onOutputFormatChange: (String) -> Unit,
     onWatermarkToggle: (Boolean) -> Unit,
     onPrivacyClick: () -> Unit = {},
-    onRateClick: () -> Unit = {},
 ) {
     val strings = LocalStrings.current
     val language = LocalLanguage.current
     val colors = LocalAppColors.current
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // DPI picker dialog state
     var showDpiDialog by remember { mutableStateOf(false) }
     // Format picker dialog state
     var showFormatDialog by remember { mutableStateOf(false) }
+    // Rate app dialog state
+    var showRateDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -233,7 +240,7 @@ fun SettingsScreen(
                         iconTint = Color(0xFFD84315),
                         title = strings.sRate,
                         subtitle = strings.fiveStars,
-                        onClick = onRateClick,
+                        onClick = { showRateDialog = true },
                         trailing = { SettingsArrow() },
                     )
                     HorizontalDivider(color = colors.divider, modifier = Modifier.padding(start = 68.dp))
@@ -272,6 +279,50 @@ fun SettingsScreen(
                 showFormatDialog = false
             },
             onDismiss = { showFormatDialog = false },
+        )
+    }
+
+    // ── Rate Dialog ──
+    if (showRateDialog) {
+        RateAppDialog(
+            onDismiss = { showRateDialog = false },
+            onRatingSubmit = { rating ->
+                showRateDialog = false
+                if (rating in 1..3) {
+                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:zenixhq.com@gmail.com")
+                        putExtra(Intent.EXTRA_SUBJECT, "Feedback for ID Photo Pro")
+                    }
+                    try {
+                        context.startActivity(emailIntent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                } else if (rating in 4..5) {
+                    val reviewManager = ReviewManagerFactory.create(context)
+                    val request = reviewManager.requestReviewFlow()
+                    request.addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val reviewInfo = task.result
+                            var activity: android.app.Activity? = null
+                            var currentContext = context
+                            while (currentContext is android.content.ContextWrapper) {
+                                if (currentContext is android.app.Activity) {
+                                    activity = currentContext
+                                    break
+                                }
+                                currentContext = currentContext.baseContext
+                            }
+                            if (activity == null && context is android.app.Activity) {
+                                activity = context
+                            }
+                            if (activity != null) {
+                                reviewManager.launchReviewFlow(activity, reviewInfo)
+                            }
+                        }
+                    }
+                }
+            }
         )
     }
 }
@@ -530,5 +581,73 @@ private fun FormatPickerDialog(
                 Text(strings.cancel, color = colors.textSecondary)
             }
         },
+    )
+}
+
+// ── Rate App Dialog ──
+
+@Composable
+private fun RateAppDialog(
+    onDismiss: () -> Unit,
+    onRatingSubmit: (Int) -> Unit
+) {
+    val colors = LocalAppColors.current
+    val strings = LocalStrings.current
+    var rating by remember { mutableIntStateOf(0) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        title = {
+            Text(
+                strings.sRate,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "How would you rate your experience?",
+                    color = colors.textSecondary,
+                    fontSize = 14.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 1..5) {
+                        Icon(
+                            imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.StarBorder,
+                            contentDescription = null,
+                            tint = if (i <= rating) Color(0xFFFFC107) else colors.textTertiary,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable { rating = i }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (rating > 0) onRatingSubmit(rating) },
+                enabled = rating > 0
+            ) {
+                Text("Submit", color = if (rating > 0) colors.primary else colors.textTertiary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(strings.cancel, color = colors.textSecondary)
+            }
+        }
     )
 }

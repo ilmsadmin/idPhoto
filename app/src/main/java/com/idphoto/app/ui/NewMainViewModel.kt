@@ -69,6 +69,9 @@ data class AppUiState(
     val watermarkEnabled: Boolean = false,
     val onboardingCompleted: Boolean = false,
     val settingsLoaded: Boolean = false,
+    val hasRated: Boolean = false,
+    val lastRatingPromptTime: Long = 0L,
+    val showRateDialog: Boolean = false,
 
     // Language sheet
     val showLanguageSheet: Boolean = false,
@@ -112,6 +115,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     onboardingCompleted = saved.onboardingCompleted,
                     paperSize = saved.paperSize,
                     cutLinesEnabled = saved.cutLinesEnabled,
+                    hasRated = saved.hasRated,
+                    lastRatingPromptTime = saved.lastRatingPromptTime,
                     settingsLoaded = true,
                 )
             } catch (_: Exception) {
@@ -319,6 +324,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                         // Build composite
                         updateComposite()
+
+                        // Happy path: background removed successfully → prompt for rating
+                        checkAndShowRatingPrompt()
                     }
 
                     override fun onError(error: Exception) {
@@ -813,6 +821,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 _uiState.value = _uiState.value.copy(savedUri = Uri.EMPTY, saveSuccess = true, isSaving = false)
+
+                // Happy path: photo saved successfully → prompt for rating
+                checkAndShowRatingPrompt()
             } catch (e: Exception) {
                 val strings = getStrings(_uiState.value.language)
                 _uiState.value = _uiState.value.copy(errorMessage = "${strings.errorSave} ${e.message}", isSaving = false)
@@ -887,6 +898,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSaveSuccess() {
         _uiState.value = _uiState.value.copy(saveSuccess = false)
+    }
+
+    // ─── In-App Rating ─────────────────────────────
+
+    /**
+     * Check whether it's appropriate to prompt the user for a rating.
+     * Conditions:
+     *  - User has NOT already rated
+     *  - Either never prompted before, OR last prompt was ≥ 7 days ago
+     */
+    fun checkAndShowRatingPrompt() {
+        val state = _uiState.value
+        if (state.hasRated) return
+        val now = System.currentTimeMillis()
+        val lastPrompt = state.lastRatingPromptTime
+        val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
+        if (lastPrompt == 0L || (now - lastPrompt) >= sevenDaysMs) {
+            _uiState.value = state.copy(showRateDialog = true, lastRatingPromptTime = now)
+            viewModelScope.launch { settingsStore.setLastRatingPromptTime(now) }
+        }
+    }
+
+    /** Called when the review flow is dismissed (regardless of whether user rated). */
+    fun dismissRatingPrompt() {
+        _uiState.value = _uiState.value.copy(showRateDialog = false)
+    }
+
+    /** Called when we know the user submitted a rating (e.g. from Settings "Rate app" tap). */
+    fun onUserRated() {
+        _uiState.value = _uiState.value.copy(showRateDialog = false, hasRated = true)
+        viewModelScope.launch { settingsStore.setHasRated(true) }
     }
 
     fun reset() {
